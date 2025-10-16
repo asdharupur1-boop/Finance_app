@@ -16,7 +16,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- NEW Custom CSS for a "Modern Minimalist" Theme ---
+# --- Custom CSS for a "Modern Minimalist" Light Theme ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
@@ -27,27 +27,27 @@ st.markdown("""
         padding-bottom: 2rem;
         padding-left: 5rem;
         padding-right: 5rem;
-        background-color: #f0f2f6; 
+        background-color: #f0f2f6; /* Light gray background */
     }
     
-    /* Font styles */
+    /* Font styles for high contrast */
     body, h1, h2, h3, h4, h5, h6, p, .stMarkdown {
         font-family: 'Inter', sans-serif;
         color: #1e293b; /* Dark Slate Gray for text */
     }
     h1 {
         font-weight: 700;
-        color: #0f172a;
+        color: #0f172a; /* Even darker for main title */
     }
     h2 {
-        border-bottom: 2px solid #3b82f6;
+        border-bottom: 2px solid #3b82f6; /* Blue accent for headers */
         padding-bottom: 5px;
         margin-top: 40px;
     }
     
     /* Metric Card Styling */
     .metric-card {
-        background-color: #ffffff;
+        background-color: #ffffff; /* White cards */
         border-radius: 12px;
         padding: 25px;
         box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
