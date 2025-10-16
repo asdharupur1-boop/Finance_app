@@ -294,30 +294,29 @@ def analytics_report_page():
     # --- Section 2: Financial Health & Cash Flow ---
     st.markdown('<div class="report-section">', unsafe_allow_html=True)
     st.header("❤️ Financial Health Analysis")
-    c1, c2 = st.columns([1, 2])
-    with c1:
-        st.subheader("Health Score")
-        fig_gauge = go.Figure(go.Indicator(
-            mode="gauge+number", value=health_score,
-            title={'text': "Overall Score"},
-            gauge={'axis': {'range': [None, 100]}, 'bar': {'color': "#3b82f6"},
-                   'steps': [{'range': [0, 40], 'color': "#ef4444"}, {'range': [40, 70], 'color': "#f59e0b"}, {'range': [70, 100], 'color': '#10b981'}]}))
-        fig_gauge.update_layout(height=280, margin=dict(l=10, r=10, t=60, b=10), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
-        st.plotly_chart(fig_gauge, use_container_width=True)
-    with c2:
-        st.subheader("Monthly Cash Flow")
-        fig_waterfall = go.Figure(go.Waterfall(
-            orientation="v",
-            measure=["absolute", "relative", "total"],
-            x=["Income", "Expenses", "Savings"],
-            y=[user_data['monthly_income'], -metrics['total_expenses'], metrics['monthly_savings']],
-            connector={"line": {"color": "#64748b"}},
-            increasing={"marker":{"color":"#10b981"}},
-            decreasing={"marker":{"color":"#ef4444"}},
-            totals={"marker":{"color":"#3b82f6"}}
-        ))
-        fig_waterfall.update_layout(showlegend=False, height=280, margin=dict(l=10,r=10,t=10,b=10), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
-        st.plotly_chart(fig_waterfall, use_container_width=True)
+    
+    st.subheader("Health Score")
+    fig_gauge = go.Figure(go.Indicator(
+        mode="gauge+number", value=health_score,
+        title={'text': "Overall Score"},
+        gauge={'axis': {'range': [None, 100]}, 'bar': {'color': "#3b82f6"},
+               'steps': [{'range': [0, 40], 'color': "#ef4444"}, {'range': [40, 70], 'color': "#f59e0b"}, {'range': [70, 100], 'color': '#10b981'}]}))
+    fig_gauge.update_layout(height=280, margin=dict(l=10, r=10, t=60, b=10), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+    st.plotly_chart(fig_gauge, use_container_width=True)
+
+    st.subheader("Monthly Cash Flow")
+    fig_waterfall = go.Figure(go.Waterfall(
+        orientation="v",
+        measure=["absolute", "relative", "total"],
+        x=["Income", "Expenses", "Savings"],
+        y=[user_data['monthly_income'], -metrics['total_expenses'], metrics['monthly_savings']],
+        connector={"line": {"color": "#64748b"}},
+        increasing={"marker":{"color":"#10b981"}},
+        decreasing={"marker":{"color":"#ef4444"}},
+        totals={"marker":{"color":"#3b82f6"}}
+    ))
+    fig_waterfall.update_layout(showlegend=False, height=350, margin=dict(l=10,r=10,t=10,b=10), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+    st.plotly_chart(fig_waterfall, use_container_width=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
     # --- Section 3: Expense Analysis ---
@@ -354,29 +353,29 @@ def analytics_report_page():
     # --- Section 5: Future Projections ---
     st.markdown('<div class="report-section">', unsafe_allow_html=True)
     st.header("💰 Future Projections")
-    c1, c2 = st.columns([1,2])
+    
+    st.subheader("Growth Calculator")
+    c1, c2 = st.columns(2)
     with c1:
-        st.subheader("Growth Calculator")
         monthly_investment = metrics['desired_investment']
         st.metric("Your Target Monthly Investment", f"₹{monthly_investment:,.0f}")
-        
+    with c2:
         proj_years = st.slider("Investment Horizon (Years)", 5, 40, 20)
         proj_return = st.slider("Assumed Annual Return (%)", 5, 20, 12)
     
-    with c2:
-        if monthly_investment > 0:
-            years = np.arange(0, proj_years + 1)
-            values = [investment_projection_calculator(monthly_investment, y, proj_return)[0] for y in years]
-            invested = [monthly_investment * y * 12 for y in years]
-            proj_df = pd.DataFrame({'Year': years, 'Projected Value': values, 'Total Invested': invested})
-            
-            fig_proj = go.Figure()
-            fig_proj.add_trace(go.Scatter(x=proj_df['Year'], y=proj_df['Projected Value'], mode='lines', name='Projected Value', fill='tozeroy', line_color='#3b82f6'))
-            fig_proj.add_trace(go.Scatter(x=proj_df['Year'], y=proj_df['Total Invested'], mode='lines', name='Amount Invested', line=dict(color='#94a3b8', dash='dash')))
-            fig_proj.update_layout(title=f"Portfolio Growth over {proj_years} years at {proj_return}%", xaxis_title='Years', yaxis_title='Portfolio Value (₹)', legend=dict(x=0.01, y=0.98), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
-            st.plotly_chart(fig_proj, use_container_width=True)
-        else:
-            st.info("Your desired investment is currently zero. Increase your savings or investment goal to see projections.")
+    if monthly_investment > 0:
+        years = np.arange(0, proj_years + 1)
+        values = [investment_projection_calculator(monthly_investment, y, proj_return)[0] for y in years]
+        invested = [monthly_investment * y * 12 for y in years]
+        proj_df = pd.DataFrame({'Year': years, 'Projected Value': values, 'Total Invested': invested})
+        
+        fig_proj = go.Figure()
+        fig_proj.add_trace(go.Scatter(x=proj_df['Year'], y=proj_df['Projected Value'], mode='lines', name='Projected Value', fill='tozeroy', line_color='#3b82f6'))
+        fig_proj.add_trace(go.Scatter(x=proj_df['Year'], y=proj_df['Total Invested'], mode='lines', name='Amount Invested', line=dict(color='#94a3b8', dash='dash')))
+        fig_proj.update_layout(title=f"Portfolio Growth over {proj_years} years at {proj_return}%", xaxis_title='Years', yaxis_title='Portfolio Value (₹)', legend=dict(x=0.01, y=0.98), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+        st.plotly_chart(fig_proj, use_container_width=True)
+    else:
+        st.info("Your desired investment is currently zero. Increase your savings or investment goal to see projections.")
     st.markdown('</div>', unsafe_allow_html=True)
 
     # --- Section 6: Action Plan & Download ---
