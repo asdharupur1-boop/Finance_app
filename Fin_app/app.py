@@ -9,50 +9,79 @@ import re
 # --- Page Configuration ---
 st.set_page_config(
     page_title="AI Financial Advisor",
-    page_icon="💡",
+    page_icon="🎨",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# --- Custom CSS for a more professional look ---
+# --- NEW Custom CSS for a "Sketchbook" Theme ---
 st.markdown("""
 <style>
-    /* Main container and text styling */
+    @import url('https://fonts.googleapis.com/css2?family=Kalam:wght@300;400;700&family=Montserrat:wght@400;600&display=swap');
+    
+    /* Main container and background */
     .main .block-container {
         padding-top: 2rem;
         padding-bottom: 2rem;
         padding-left: 3rem;
         padding-right: 3rem;
+        background-color: #fdfaf3; /* Off-white paper color */
     }
+    
+    /* Font styles */
     h1, h2, h3 {
-        color: #2c3e50;
+        font-family: 'Kalam', cursive;
+        color: #4a4a4a; /* Charcoal text */
     }
-    /* Metric cards styling */
+    p, .stMarkdown, .st-emotion-cache-1g6gooi, .st-emotion-cache-13sdqgw {
+        font-family: 'Montserrat', sans-serif;
+        color: #5d5d5d;
+    }
+
+    /* Metric "Sticky Note" styling */
     .stMetric {
-        background-color: #ecf0f1;
-        border-radius: 10px;
-        padding: 15px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        border-left: 5px solid #3498db;
+        background-color: #fffacd; /* Light yellow sticky note */
+        border-radius: 5px;
+        padding: 20px;
+        border: 1px solid #e0cda1;
+        box-shadow: 5px 5px 10px rgba(0,0,0,0.1);
+        transform: rotate(-1.5deg); /* Slight tilt */
+        margin-bottom: 15px;
     }
-    .stMetric:nth-child(2) { border-left-color: #e74c3c; }
-    .stMetric:nth-child(3) { border-left-color: #2ecc71; }
-    .stMetric .st-emotion-cache-1g6gooi { /* Metric label */
-        font-size: 1.1em;
-        font-weight: bold;
-        color: #34495e;
-    }
-    /* Section containers */
+    .stMetric:nth-child(2) { transform: rotate(1deg); background-color: #f0fff0; }
+    .stMetric:nth-child(3) { transform: rotate(-1deg); background-color: #f0f8ff; }
+
+    /* Section containers with sketch-like borders */
     .section-container {
         background-color: #ffffff;
-        border-radius: 10px;
+        border-radius: 3px;
         padding: 20px;
         margin-bottom: 20px;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+        border: 2px solid #ccc;
+        box-shadow: 0 0 0;
     }
+    
     /* Sidebar styling */
     [data-testid="stSidebar"] {
-        background-color: #f8f9fa;
+        background-color: #f7f3e9;
+        border-right: 2px dashed #dcd2b8;
+    }
+    [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2 {
+        font-family: 'Kalam', cursive;
+    }
+    [data-testid="stSidebar"] p, [data-testid="stSidebar"] .st-emotion-cache-1g6gooi {
+        font-family: 'Montserrat', sans-serif;
+    }
+
+    /* Button Styling */
+    .stDownloadButton button {
+        background-color: #8B4513; /* SaddleBrown */
+        color: white;
+        border-radius: 5px;
+        border: none;
+        padding: 10px 20px;
+        font-family: 'Kalam', cursive;
+        font-size: 1.1em;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -137,7 +166,7 @@ class PDF(FPDF):
 
     def chapter_body(self, body):
         self.set_font('Helvetica', '', 11)
-        self.multi_cell(0, 8, body, align='L') # FIX: Explicitly set align to 'L'
+        self.multi_cell(0, 8, body, align='L') 
         self.ln()
 
 def clean_text_for_pdf(text):
@@ -153,7 +182,7 @@ def clean_text_for_pdf(text):
                            "]+", flags=re.UNICODE)
     return emoji_pattern.sub(r'', text).strip()
 
-def create_pdf_report(metrics, alerts, recommendations, health_score): # FIX: Changed recommendations_list to recommendations
+def create_pdf_report(metrics, alerts, recommendations, health_score):
     pdf = PDF()
     pdf.add_page()
     
@@ -180,13 +209,13 @@ def create_pdf_report(metrics, alerts, recommendations, health_score): # FIX: Ch
         pdf.chapter_title("Personal Recommender Alerts")
         for alert in alerts:
             message = clean_text_for_pdf(alert['message'])
-            pdf.multi_cell(0, 8, f"- {message}", align='L') # FIX: Explicitly set align to 'L'
+            pdf.multi_cell(0, 8, f"- {message}", align='L')
         pdf.ln()
 
     pdf.chapter_title("Actionable Recommendations")
-    for i, rec in enumerate(recommendations, 1): # FIX: Changed recommendations_list to recommendations
+    for i, rec in enumerate(recommendations, 1):
         rec_text = clean_text_for_pdf(rec)
-        pdf.multi_cell(0, 8, f"{i}. {rec_text}", align='L') # FIX: Explicitly set align to 'L'
+        pdf.multi_cell(0, 8, f"{i}. {rec_text}", align='L')
     
     return pdf.output(dest='S').encode('latin-1')
 
@@ -217,9 +246,9 @@ def investment_projection_calculator(monthly_investment, years, expected_return)
 
 # --- Sidebar for User Input ---
 with st.sidebar:
-    st.image("https://www.svgrepo.com/show/493636/investment.svg", width=80)
-    st.title("AI Financial Advisor")
-    st.write("Enter your financial details for a personalized analysis.")
+    st.image("https://www.svgrepo.com/show/376288/sketchbook.svg", width=80)
+    st.title("Financial Sketchbook")
+    st.write("Jot down your financial details to sketch out your future.")
 
     with st.expander("💰 **Monthly Income**", expanded=True):
         monthly_income = st.number_input("Take-Home Income (₹)", min_value=0, value=75000, step=1000)
@@ -241,7 +270,7 @@ with st.sidebar:
         investment_percentage = st.slider("% of Income to Invest", 0, 100, 20)
 
     st.markdown("---")
-    with st.expander("🔗 **Connect with the Developer**"):
+    with st.expander("✍️ **Connect with the Artist**"):
         st.markdown(
             """
             <div style="display: flex; justify-content: space-around; align-items: center; padding: 5px 0;">
@@ -261,7 +290,7 @@ with st.sidebar:
         )
 
 # --- Main Dashboard ---
-st.title("Your Financial Dashboard")
+st.title("Your Financial Sketch")
 st.markdown("A personalized overview of your financial health, projections, and actionable recommendations.")
 
 if monthly_income == 0:
@@ -281,29 +310,29 @@ else:
     alerts = analyzer.generate_spending_alerts(metrics)
     
     # --- Key Metrics ---
-    st.markdown("###  Key Metrics")
+    st.markdown("### Quick Notes")
     col1, col2, col3 = st.columns(3)
     col1.metric("💰 Monthly Income", f"₹{monthly_income:,.0f}")
     col2.metric("💸 Total Expenses", f"₹{metrics['total_expenses']:,.0f}")
     col3.metric("🏦 Monthly Savings", f"₹{metrics['monthly_savings']:,.0f}", delta=f"{metrics['savings_rate']:.1f}% Savings Rate")
     
-    st.markdown("<hr>", unsafe_allow_html=True)
+    st.markdown("---")
 
     # --- Financial Health & Alerts ---
     col_health, col_alerts = st.columns([1, 2])
     with col_health:
-        st.markdown("### Financial Health")
+        st.markdown("### Health Meter")
         health_score = min(100, max(0, int(metrics['savings_rate'] * 3.5 + 30)))
         fig_gauge = go.Figure(go.Indicator(
             mode="gauge+number", value=health_score,
-            title={'text': "Health Score"},
-            gauge={'axis': {'range': [None, 100]}, 'bar': {'color': "#3498db"},
-                   'steps': [{'range': [0, 40], 'color': "#e74c3c"}, {'range': [40, 70], 'color': "#f1c40f"}, {'range': [70, 100], 'color': '#2ecc71'}]}))
-        fig_gauge.update_layout(height=250, margin=dict(l=10, r=10, t=60, b=10))
+            title={'text': "Health Score", 'font': {'family': 'Kalam', 'size': 20, 'color': '#4a4a4a'}},
+            gauge={'axis': {'range': [None, 100]}, 'bar': {'color': "#6a89cc"},
+                   'steps': [{'range': [0, 40], 'color': "#E2725B"}, {'range': [40, 70], 'color': "#f1c40f"}]}))
+        fig_gauge.update_layout(height=250, margin=dict(l=10, r=10, t=60, b=10), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(fig_gauge, use_container_width=True)
 
     with col_alerts:
-        st.markdown("### Recommender Alerts")
+        st.markdown("### Memos & Alerts")
         if alerts:
             for alert in alerts:
                 if alert['severity'] == 'HIGH': st.error(f"**Alert:** {alert['message']}")
@@ -311,14 +340,14 @@ else:
         else:
             st.success("Excellent! No critical financial issues detected. Your budget looks healthy.")
 
-    st.markdown("<hr>", unsafe_allow_html=True)
+    st.markdown("---")
     
     # --- Financial Breakdown Section ---
-    st.markdown("### Financial Breakdown")
+    st.markdown("### Where the Money Goes")
     col_waterfall, col_sunburst = st.columns(2)
     
     with col_waterfall:
-        st.markdown("##### Monthly Cash Flow (Waterfall)")
+        st.markdown("##### Monthly Cash Flow Sketch")
         fig_waterfall = go.Figure(go.Waterfall(
             name="Cash Flow", orientation="v",
             measure=["absolute", "relative", "total"],
@@ -326,20 +355,20 @@ else:
             y=[monthly_income, -metrics['total_expenses'], metrics['monthly_savings']],
             connector={"line": {"color": "rgb(63, 63, 63)"}},
             increasing={"marker":{"color":"#2ecc71"}},
-            decreasing={"marker":{"color":"#e74c3c"}},
-            totals={"marker":{"color":"#3498db"}}
+            decreasing={"marker":{"color":"#E2725B"}},
+            totals={"marker":{"color":"#6a89cc"}}
         ))
-        fig_waterfall.update_layout(title="From Income to Savings", showlegend=False, height=450)
+        fig_waterfall.update_layout(title="From Income to Savings", showlegend=False, height=450, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color="#4a4a4a")
         st.plotly_chart(fig_waterfall, use_container_width=True)
 
     with col_sunburst:
-        st.markdown("##### Expense Categories (Sunburst)")
+        st.markdown("##### Expense Categories Blueprint")
         fixed_expenses = {'Rent/EMI': rent_emi, 'Loans': loan_repayments, 'Utilities': utilities, 'Internet/Phone': internet_phone, 'Insurance': insurance, 'Subscriptions': subscriptions}
         variable_expenses = {'Groceries': groceries, 'Transportation': transportation, 'Dining/Entertainment': dining_entertainment, 'Shopping': shopping, 'Miscellaneous': miscellaneous}
         
         labels = ["Expenses"]
         parents = [""]
-        values = [0] # Placeholder for the root
+        values = [0] 
         
         for cat_name, cat_expenses in [("Fixed", fixed_expenses), ("Variable", variable_expenses)]:
             labels.append(cat_name)
@@ -351,49 +380,52 @@ else:
                     parents.append(cat_name)
                     values.append(value)
 
-        fig_sunburst = go.Figure(go.Sunburst(labels=labels, parents=parents, values=values, branchvalues="total"))
-        fig_sunburst.update_layout(margin=dict(t=20, l=10, r=10, b=10), title="Fixed vs. Variable Spending", height=450)
+        fig_sunburst = go.Figure(go.Sunburst(labels=labels, parents=parents, values=values, branchvalues="total", marker_colors=["#808000", "#E2725B", "#6a89cc"]))
+        fig_sunburst.update_layout(margin=dict(t=40, l=10, r=10, b=10), title="Fixed vs. Variable Spending", height=450, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color="#4a4a4a")
         st.plotly_chart(fig_sunburst, use_container_width=True)
 
-    st.markdown("<hr>", unsafe_allow_html=True)
+    st.markdown("---")
     
-    # --- Investment Center (NEW SECTION) ---
-    st.markdown("### 📊 Investment Center")
+    # --- Investment Center ---
+    st.markdown("### 📊 Investment Ideas")
     mf_df = get_mutual_fund_returns_data()
     category_performance = mf_df.groupby('Category')[['1_Year_Return', '3_Year_CAGR', '5_Year_CAGR']].mean().reset_index()
 
     fig_mf = go.Figure()
-    for col in ['1_Year_Return', '3_Year_CAGR', '5_Year_CAGR']:
+    colors = ['#808000', '#E2725B', '#6a89cc']
+    for i, col in enumerate(['1_Year_Return', '3_Year_CAGR', '5_Year_CAGR']):
         fig_mf.add_trace(go.Bar(
             x=category_performance['Category'],
             y=category_performance[col],
-            name=col.replace('_', ' ')
+            name=col.replace('_', ' '),
+            marker_color=colors[i]
         ))
     fig_mf.update_layout(
-        title='Average Mutual Fund Returns by Category (Informational)',
+        title='Average Mutual Fund Returns (For Reference)',
         xaxis_title='Fund Category',
-        yaxis_title='Average Annualized Return (%)',
+        yaxis_title='Avg. Annualized Return (%)',
         barmode='group',
-        legend_title='Return Period'
+        legend_title='Return Period',
+        paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color="#4a4a4a"
     )
     st.plotly_chart(fig_mf, use_container_width=True)
 
 
-    st.markdown("<hr>", unsafe_allow_html=True)
+    st.markdown("---")
     
     # --- Projections & Recommendations ---
-    st.markdown("### 💰 Investment & Growth")
+    st.markdown("### 💰 Future Sketch & Action Plan")
     proj_col1, proj_col2 = st.columns([1, 2])
 
     with proj_col1:
-        st.markdown("##### Projection Calculator")
+        st.markdown("##### Projection Doodle")
         monthly_investment = metrics['desired_investment']
         st.metric("Desired Monthly Investment", f"₹{monthly_investment:,.0f}")
         
         proj_years = st.slider("Horizon (Years)", 5, 40, 20, key="proj_years_slider")
         proj_return = st.slider("Expected Return (%)", 5, 20, 12, key="proj_return_slider")
         
-        st.markdown("##### 💡 Recommendations")
+        st.markdown("##### 💡 To-Do List")
         recommendations = []
         if metrics['savings_rate'] < 20: recommendations.append("🚀 **Boost Savings:** Your rate is below 20%. Review variable expenses.")
         if metrics['desired_investment'] > metrics['monthly_savings']: recommendations.append(f"🔧 **Bridge the Gap:** Increase savings by **₹{metrics['desired_investment'] - metrics['monthly_savings']:,.0f}** to meet your goal.")
@@ -419,22 +451,22 @@ else:
             proj_df = pd.DataFrame({'Year': years, 'Projected Value': values, 'Total Invested': invested})
             
             fig_proj = go.Figure()
-            fig_proj.add_trace(go.Scatter(x=proj_df['Year'], y=proj_df['Projected Value'], mode='lines', name='Projected Value', fill='tozeroy', line_color='#3498db'))
-            fig_proj.add_trace(go.Scatter(x=proj_df['Year'], y=proj_df['Total Invested'], mode='lines', name='Amount Invested', line=dict(color='#95a5a6', dash='dash')))
-            fig_proj.update_layout(xaxis_title='Years', yaxis_title='Value (₹)', legend=dict(x=0.01, y=0.98))
+            fig_proj.add_trace(go.Scatter(x=proj_df['Year'], y=proj_df['Projected Value'], mode='lines', name='Projected Value', fill='tozeroy', line_color='#6a89cc'))
+            fig_proj.add_trace(go.Scatter(x=proj_df['Year'], y=proj_df['Total Invested'], mode='lines', name='Amount Invested', line=dict(color='#E2725B', dash='dash')))
+            fig_proj.update_layout(xaxis_title='Years', yaxis_title='Value (₹)', legend=dict(x=0.01, y=0.98), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color="#4a4a4a")
             st.plotly_chart(fig_proj, use_container_width=True)
         else:
             st.warning("Increase your savings or investment % to see projections.")
     
-    st.markdown("<hr>", unsafe_allow_html=True)
+    st.markdown("---")
     
     # --- Download Report Section ---
-    st.markdown("### 📥 Download Your Report")
+    st.markdown("### 📥 Save Your Sketch")
     pdf_data = create_pdf_report(metrics, alerts, recommendations, health_score)
     st.download_button(
-        label="Download Full Financial Report (PDF)",
+        label="Download Financial Sketch (PDF)",
         data=pdf_data,
-        file_name=f"Financial_Report_{datetime.now().strftime('%Y%m%d')}.pdf",
+        file_name=f"Financial_Sketch_{datetime.now().strftime('%Y%m%d')}.pdf",
         mime="application/pdf"
     )
 
