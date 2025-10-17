@@ -6,7 +6,6 @@ import plotly.express as px
 from fpdf import FPDF
 from datetime import datetime
 import re
-import time
 
 # --- Page Configuration ---
 st.set_page_config(
@@ -16,18 +15,16 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- Custom CSS for a "Modern Minimalist" Light Theme ---
+# --- NEW Custom CSS for "Gradient Aura" Light Theme with Animations ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
     
-    /* Main container and background */
+    /* Main container with gradient background */
     .main .block-container {
-        padding-top: 2rem;
-        padding-bottom: 2rem;
-        padding-left: 5rem;
-        padding-right: 5rem;
-        background-color: #f0f2f6; /* Light gray background */
+        padding: 2rem 5rem;
+        background-color: #f0f2f6; /* Fallback color */
+        background-image: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
     }
     
     /* Font styles for high contrast */
@@ -35,33 +32,49 @@ st.markdown("""
         font-family: 'Inter', sans-serif;
         color: #1e293b; /* Dark Slate Gray for text */
     }
-    h1 {
-        font-weight: 700;
-        color: #0f172a; /* Even darker for main title */
-    }
+    h1 { font-weight: 700; color: #0f172a; }
     h2 {
-        border-bottom: 2px solid #3b82f6; /* Blue accent for headers */
+        border-bottom: 2px solid #6366f1; /* Indigo accent */
         padding-bottom: 5px;
         margin-top: 40px;
     }
     
-    /* Metric Card Styling */
+    /* Keyframe Animations */
+    @keyframes slideInUp {
+        from { opacity: 0; transform: translateY(50px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes pulse {
+        0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.7); }
+        70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(99, 102, 241, 0); }
+        100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(99, 102, 241, 0); }
+    }
+
+    /* Metric Card Styling with Staggered Animation */
     .metric-card {
-        background-color: #ffffff; /* White cards */
+        background-color: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(10px);
         border-radius: 12px;
         padding: 25px;
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-        border: 1px solid #e2e8f0;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.9);
         transition: transform 0.3s ease, box-shadow 0.3s ease;
+        opacity: 0; /* Initially hidden for animation */
+        animation: slideInUp 0.6s ease-out forwards;
     }
+    /* Stagger the animation for each card */
+    [data-testid="column"]:nth-of-type(1) .metric-card { animation-delay: 0.2s; }
+    [data-testid="column"]:nth-of-type(2) .metric-card { animation-delay: 0.3s; }
+    [data-testid="column"]:nth-of-type(3) .metric-card { animation-delay: 0.4s; }
+    
     .metric-card:hover {
         transform: translateY(-5px);
-        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
     }
     
-    /* Button Styling */
+    /* Button Styling with Pulse Animation */
     .stButton>button {
-        background-color: #3b82f6;
+        background-color: #6366f1;
         color: white;
         border-radius: 8px;
         border: none;
@@ -69,18 +82,19 @@ st.markdown("""
         font-weight: 600;
         font-size: 1.1em;
         transition: background-color 0.3s ease;
+        animation: pulse 2s infinite; /* Add pulse animation */
     }
     .stButton>button:hover {
-        background-color: #2563eb;
+        background-color: #4f46e5;
+        animation: none; /* Stop pulsing on hover */
+    }
+
+    .stProgress > div > div > div > div {
+        background-color: #6366f1;
     }
     
-    /* Animation for report sections */
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(20px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
     .report-section {
-        animation: fadeIn 0.8s ease-out;
+        animation: slideInUp 0.8s ease-out;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -93,52 +107,55 @@ if 'user_data' not in st.session_state:
 
 # --- Financial Analyzer Class ---
 class FinancialAnalyzer:
-    """A class to analyze user's financial data."""
     def __init__(self, user_data):
         self.user_data = user_data
         self.monthly_income = user_data.get('monthly_income', 0)
         self.expenses = user_data.get('expenses', {})
         self.investment_pct = user_data.get('investment_percentage', 0)
+        self.current_savings = user_data.get('current_savings', 0)
 
     def calculate_financial_metrics(self):
-        """Calculate key financial metrics."""
         total_expenses = sum(self.expenses.values())
         monthly_savings = self.monthly_income - total_expenses
-        desired_investment = self.monthly_income * (self.investment_pct / 100)
-        savings_rate = (monthly_savings / self.monthly_income) * 100 if self.monthly_income > 0 else 0
-        expense_ratios = {category: (amount / self.monthly_income) * 100 if self.monthly_income > 0 else 0
-                         for category, amount in self.expenses.items()}
-        
         return {
             'total_expenses': total_expenses,
             'monthly_savings': monthly_savings,
-            'desired_investment': desired_investment,
-            'savings_rate': savings_rate,
-            'expense_ratios': expense_ratios
+            'desired_investment': self.monthly_income * (self.investment_pct / 100),
+            'savings_rate': (monthly_savings / self.monthly_income) * 100 if self.monthly_income > 0 else 0,
+            'expense_ratios': {c: (a / self.monthly_income) * 100 if self.monthly_income > 0 else 0 for c, a in self.expenses.items()}
+        }
+    
+    def calculate_advanced_metrics(self, metrics):
+        debt_payments = self.expenses.get('Rent/EMI', 0) + self.expenses.get('Other Loans', 0)
+        dti_ratio = (debt_payments / self.monthly_income) * 100 if self.monthly_income > 0 else 0
+        emergency_fund_coverage = (self.current_savings / metrics['total_expenses']) if metrics['total_expenses'] > 0 else 0
+        annual_expenses = metrics['total_expenses'] * 12
+        fire_number = annual_expenses * 25
+        
+        return {
+            'dti_ratio': dti_ratio,
+            'emergency_fund_target': metrics['total_expenses'] * 6,
+            'emergency_fund_coverage': emergency_fund_coverage,
+            'fire_number': fire_number
         }
 
-    def generate_recommendations(self, metrics):
-        """Generate actionable recommendations."""
+    def generate_recommendations(self, metrics, advanced_metrics):
         recommendations = []
         if metrics['savings_rate'] < 15:
-            recommendations.append("🚀 **Prioritize Savings:** Your savings rate is below the recommended 15-20%. Focus on reducing variable expenses like 'Dining Out' or 'Shopping' to free up more cash for your goals.")
-        elif metrics['savings_rate'] < 30:
-             recommendations.append("👍 **Good Savings Foundation:** You're on the right track. Consider automating a slightly higher portion of your income towards investments to accelerate wealth building.")
-        else:
-            recommendations.append("🎉 **Excellent Saver:** Your high savings rate is a powerful wealth-building engine. Ensure these savings are invested effectively to maximize their growth potential.")
-
-        if metrics['desired_investment'] > metrics['monthly_savings']:
-            shortfall = metrics['desired_investment'] - metrics['monthly_savings']
-            recommendations.append(f"🔧 **Bridge the Investment Gap:** There's a **₹{shortfall:,.0f}** gap between your goal and your savings. A detailed budget review can help close this.")
+            recommendations.append("🚀 **Prioritize Savings:** Your savings rate is below the recommended 15-20%. Focus on reducing variable expenses to free up more cash.")
         
-        if metrics['expense_ratios']:
-            high_expense = max(metrics['expense_ratios'], key=metrics['expense_ratios'].get)
-            if metrics['expense_ratios'][high_expense] > 20: 
-                recommendations.append(f"🔍 **Expense Deep-Dive:** Your highest expense category is **{high_expense.replace('_', ' ').title()}**. Scrutinizing this area could unlock significant savings.")
+        if advanced_metrics['dti_ratio'] > 40:
+             recommendations.append("📈 **High Debt-to-Income:** Your DTI ratio is high. Prioritize paying down high-interest debt to improve your financial flexibility.")
         
-        recommendations.append("🤖 **Automate Your Wealth:** Set up a Systematic Investment Plan (SIP) to invest your desired amount automatically each month. This builds discipline and leverages dollar-cost averaging.")
-        recommendations.append("🛡️ **Build a Safety Net:** Ensure you have an emergency fund covering 3-6 months of essential living expenses before making aggressive investments.")
+        if advanced_metrics['emergency_fund_coverage'] < 3:
+            recommendations.append("🛡️ **Build a Safety Net:** Your emergency fund is low. Aim to build a fund covering 3-6 months of essential living expenses before making aggressive investments.")
 
+        dining_ratio = metrics['expense_ratios'].get('Dining & Entertainment', 0)
+        if dining_ratio > 10:
+             recommendations.append("🧠 **Behavioral Nudge:** High spending on 'Dining & Entertainment' can indicate 'Present Bias' (prioritizing short-term wants). A small reduction here can significantly boost long-term wealth.")
+
+        recommendations.append("🤖 **Automate Your Wealth:** Set up a Systematic Investment Plan (SIP) to automatically invest your desired amount each month. This builds discipline and leverages dollar-cost averaging.")
+        
         return recommendations
 
 # --- PDF Report Generation ---
@@ -166,25 +183,29 @@ class PDF(FPDF):
         self.ln()
 
 def clean_text_for_pdf(text):
-    text = text.replace('**', '').replace("🚀", "").replace("👍", "").replace("🎉", "").replace("🔧", "").replace("🔍", "").replace("🤖", "").replace("🛡️", "")
+    text = text.replace('**', '').replace("🚀", "").replace("👍", "").replace("🎉", "").replace("🔧", "").replace("🔍", "").replace("🤖", "").replace("🛡️", "").replace("🧠", "").replace("📈", "")
     return text.strip()
 
-def create_pdf_report(metrics, recommendations, health_score, user_data):
+def create_pdf_report(metrics, advanced_metrics, recommendations, health_score, user_data):
     pdf = PDF()
     pdf.add_page()
-    
     pdf.set_font('Helvetica', '', 10)
-    pdf.cell(0, 10, f"Report for: User | Date: {datetime.now().strftime('%Y-%m-%d')}", ln=1)
+    pdf.cell(0, 10, f"Report for: User | Date: {datetime.now().strftime('%Y%m%d')}", ln=1)
     
     pdf.chapter_title("Key Financial Overview")
-    metrics_text = (
+    pdf.chapter_body(
         f"Monthly Income: INR {user_data['monthly_income']:,.0f}\n"
         f"Total Monthly Expenses: INR {metrics['total_expenses']:,.0f}\n"
         f"Monthly Savings: INR {metrics['monthly_savings']:,.0f}\n"
-        f"Savings Rate: {metrics['savings_rate']:.1f}%\n"
-        f"Financial Health Score: {health_score}/100"
+        f"Savings Rate: {metrics['savings_rate']:.1f}%"
     )
-    pdf.chapter_body(metrics_text)
+    
+    pdf.chapter_title("Advanced Health Metrics")
+    pdf.chapter_body(
+        f"Financial Health Score: {health_score}/100\n"
+        f"Debt-to-Income Ratio: {advanced_metrics['dti_ratio']:.1f}%\n"
+        f"Emergency Fund Coverage: {advanced_metrics['emergency_fund_coverage']:.1f} months"
+    )
 
     pdf.chapter_title("Actionable Recommendations")
     for i, rec in enumerate(recommendations, 1):
@@ -206,58 +227,51 @@ def investment_projection_calculator(monthly_investment, years, expected_return)
         future_value = monthly_investment * (((1 + monthly_rate) ** months - 1) / monthly_rate)
     else:
         future_value = monthly_investment * months
-    total_invested = monthly_investment * months
-    estimated_gains = future_value - total_invested
-    return future_value, total_invested, estimated_gains
+    return future_value
 
 # --- UI Application Flow ---
 
 def data_entry_page():
-    """Page for user to input their financial data."""
     st.title("Welcome to your AI Financial Advisor 🤖")
-    st.markdown("Let's start by gathering some basic financial details to generate your personalized report. All data is processed in-memory and is not stored.")
-    
+    st.markdown("Let's start by gathering some basic financial details to generate your personalized report.")
     st.markdown("---")
     
-    # --- Input Form ---
     st.header("Step 1: Your Financial Snapshot")
     
     with st.form(key='financial_form'):
         c1, c2 = st.columns(2)
         with c1:
-            st.subheader("💰 Income")
-            monthly_income = st.number_input("Monthly Take-Home Income (₹)", min_value=0, value=75000, step=1000)
+            st.subheader("💰 Income & Savings")
+            monthly_income = st.number_input("Monthly Take-Home Income (₹)", 0, 10000000, 75000, 1000)
+            current_savings = st.number_input("Current Savings / Emergency Fund (₹)", 0, 100000000, 50000, 5000)
             
             st.subheader("📈 Investment Goal")
-            investment_percentage = st.slider("% of Income to Invest", 0, 100, 20, help="What percentage of your income do you aim to invest each month?")
+            investment_percentage = st.slider("% of Income to Invest", 0, 100, 20)
 
         with c2:
             st.subheader("💸 Expenses")
-            st.write("Enter your typical monthly expenses.")
-            
-            # Grouping expenses for better UX
             exp_c1, exp_c2 = st.columns(2)
             with exp_c1:
-                rent_emi = st.number_input("Rent/EMI", min_value=0, value=20000, step=500)
-                groceries = st.number_input("Groceries", min_value=0, value=8000, step=200)
-                utilities = st.number_input("Utilities (Electricity, Water)", min_value=0, value=3000, step=100)
-                transportation = st.number_input("Transportation", min_value=0, value=4000, step=100)
-                insurance = st.number_input("Insurance Premiums", min_value=0, value=2000, step=100)
+                rent_emi = st.number_input("Rent/EMI", 0, 1000000, 20000, 500)
+                groceries = st.number_input("Groceries", 0, 100000, 8000, 200)
+                utilities = st.number_input("Utilities (Electricity, Water)", 0, 50000, 3000, 100)
+                transportation = st.number_input("Transportation", 0, 50000, 4000, 100)
+                insurance = st.number_input("Insurance Premiums", 0, 100000, 2000, 100)
             with exp_c2:
-                loan_repayments = st.number_input("Other Loan Repayments", min_value=0, value=5000, step=500)
-                dining_entertainment = st.number_input("Dining & Entertainment", min_value=0, value=6000, step=200)
-                shopping = st.number_input("Shopping", min_value=0, value=5000, step=200)
-                internet_phone = st.number_input("Internet & Phone Bills", min_value=0, value=1000, step=50)
-                miscellaneous = st.number_input("Miscellaneous", min_value=0, value=2000, step=100)
+                loan_repayments = st.number_input("Other Loan Repayments", 0, 500000, 5000, 500)
+                dining_entertainment = st.number_input("Dining & Entertainment", 0, 100000, 6000, 200)
+                shopping = st.number_input("Shopping", 0, 100000, 5000, 200)
+                internet_phone = st.number_input("Internet & Phone", 0, 20000, 1000, 50)
+                miscellaneous = st.number_input("Miscellaneous", 0, 100000, 2000, 100)
 
         submitted = st.form_submit_button(label="✨ Generate My Financial Report")
 
     if submitted:
         if monthly_income == 0:
-            st.error("Monthly Income cannot be zero. Please enter a valid amount to generate the report.")
+            st.error("Monthly Income cannot be zero.")
         else:
             st.session_state.user_data = {
-                'monthly_income': monthly_income,
+                'monthly_income': monthly_income, 'current_savings': current_savings,
                 'investment_percentage': investment_percentage,
                 'expenses': {
                     'Rent/EMI': rent_emi, 'Other Loans': loan_repayments, 'Utilities': utilities,
@@ -270,131 +284,92 @@ def data_entry_page():
             st.rerun()
 
 def analytics_report_page():
-    """Page to display the full financial analysis report."""
     user_data = st.session_state.user_data
     analyzer = FinancialAnalyzer(user_data)
     metrics = analyzer.calculate_financial_metrics()
-    recommendations = analyzer.generate_recommendations(metrics)
-    health_score = min(100, max(0, int(metrics['savings_rate'] * 3.5 + 30)))
+    advanced_metrics = analyzer.calculate_advanced_metrics(metrics)
+    recommendations = analyzer.generate_recommendations(metrics, advanced_metrics)
+    health_score = min(100, max(0, int((1 - advanced_metrics['dti_ratio']/100) * 30 + metrics['savings_rate'] * 2 + (advanced_metrics['emergency_fund_coverage']/6)*20)))
     
     st.title("Your Personalized Financial Report")
 
     # --- Section 1: At-a-Glance Summary ---
-    st.markdown('<div class="report-section">', unsafe_allow_html=True)
     st.header("📊 At-a-Glance Summary")
     c1, c2, c3 = st.columns(3)
+    c1.markdown(f'<div class="metric-card"><h4>💰 Monthly Income</h4><h3>₹{user_data["monthly_income"]:,.0f}</h3></div>', unsafe_allow_html=True)
+    c2.markdown(f'<div class="metric-card"><h4>💸 Total Expenses</h4><h3>₹{metrics["total_expenses"]:,.0f}</h3></div>', unsafe_allow_html=True)
+    c3.markdown(f'<div class="metric-card"><h4>🏦 Monthly Savings</h4><h3>₹{metrics["monthly_savings"]:,.0f}</h3><p style="color: #10b981; font-weight: bold;">{metrics["savings_rate"]:.1f}% Savings Rate</p></div>', unsafe_allow_html=True)
+    
+    # --- Section 2: Financial Health Deep-Dive ---
+    st.markdown('<div class="report-section" style="animation-delay: 0.5s;">', unsafe_allow_html=True)
+    st.header("❤️ Financial Health Deep-Dive")
+    
+    c1, c2 = st.columns(2)
     with c1:
-        st.markdown(f'<div class="metric-card"><h4>💰 Monthly Income</h4><h3>₹{user_data["monthly_income"]:,.0f}</h3></div>', unsafe_allow_html=True)
+        st.subheader("Overall Health Score")
+        fig_gauge = go.Figure(go.Indicator(mode="gauge+number", value=health_score, title={'text': "Score"},
+            gauge={'axis': {'range': [None, 100]}, 'bar': {'color': "#6366f1"}, 'steps': [{'range': [0, 40], 'color': "#fee2e2"}, {'range': [40, 70], 'color': "#fef3c7"}, {'range': [70, 100], 'color': '#dcfce7'}]}))
+        st.plotly_chart(fig_gauge, use_container_width=True)
     with c2:
-        st.markdown(f'<div class="metric-card"><h4>💸 Total Expenses</h4><h3>₹{metrics["total_expenses"]:,.0f}</h3></div>', unsafe_allow_html=True)
-    with c3:
-        st.markdown(f'<div class="metric-card"><h4>🏦 Monthly Savings</h4><h3>₹{metrics["monthly_savings"]:,.0f}</h3><p style="color: #2ecc71; font-weight: bold;">{metrics["savings_rate"]:.1f}% Savings Rate</p></div>', unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
+        st.subheader("Debt-to-Income (DTI) Ratio")
+        dti_val = advanced_metrics['dti_ratio']
+        fig_dti = go.Figure(go.Indicator(mode="gauge+number", value=dti_val, title={'text': "% of Income"},
+            gauge={'axis': {'range': [None, 100]}, 'bar': {'color': "#6366f1"}, 'steps': [{'range': [0, 35], 'color': '#dcfce7'}, {'range': [35, 43], 'color': "#fef3c7"}, {'range': [43, 100], 'color': '#fee2e2'}]}))
+        st.plotly_chart(fig_dti, use_container_width=True)
 
-    # --- Section 2: Financial Health & Cash Flow ---
-    st.markdown('<div class="report-section">', unsafe_allow_html=True)
-    st.header("❤️ Financial Health Analysis")
+    st.subheader("Emergency Fund Status")
+    coverage = advanced_metrics['emergency_fund_coverage']
+    st.progress(min(1.0, coverage / 6.0))
+    st.markdown(f"You have **{coverage:.1f} months** of expenses covered. (Target: 6 months)")
+    st.markdown('</div>', unsafe_allow_html=True)
     
-    st.subheader("Health Score")
-    fig_gauge = go.Figure(go.Indicator(
-        mode="gauge+number", value=health_score,
-        title={'text': "Overall Score"},
-        gauge={'axis': {'range': [None, 100]}, 'bar': {'color': "#3b82f6"},
-               'steps': [{'range': [0, 40], 'color': "#ef4444"}, {'range': [40, 70], 'color': "#f59e0b"}, {'range': [70, 100], 'color': '#10b981'}]}))
-    fig_gauge.update_layout(height=280, margin=dict(l=10, r=10, t=60, b=10), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
-    st.plotly_chart(fig_gauge, use_container_width=True)
-
-    st.subheader("Monthly Cash Flow")
-    fig_waterfall = go.Figure(go.Waterfall(
-        orientation="v",
-        measure=["absolute", "relative", "total"],
-        x=["Income", "Expenses", "Savings"],
-        y=[user_data['monthly_income'], -metrics['total_expenses'], metrics['monthly_savings']],
-        connector={"line": {"color": "#64748b"}},
-        increasing={"marker":{"color":"#10b981"}},
-        decreasing={"marker":{"color":"#ef4444"}},
-        totals={"marker":{"color":"#3b82f6"}}
-    ))
-    fig_waterfall.update_layout(showlegend=False, height=350, margin=dict(l=10,r=10,t=10,b=10), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
-    st.plotly_chart(fig_waterfall, use_container_width=True)
-    st.markdown('</div>', unsafe_allow_html=True)
-
     # --- Section 3: Expense Analysis ---
-    st.markdown('<div class="report-section">', unsafe_allow_html=True)
+    st.markdown('<div class="report-section" style="animation-delay: 0.6s;">', unsafe_allow_html=True)
     st.header("💸 Expense Breakdown")
-    
     expense_df = pd.DataFrame(list(user_data['expenses'].items()), columns=['Category', 'Amount']).sort_values('Amount', ascending=False)
     expense_df = expense_df[expense_df['Amount'] > 0]
-
-    fig_treemap = px.treemap(expense_df, path=['Category'], values='Amount',
-                             title='Visualizing Your Spending Categories',
-                             color_discrete_sequence=px.colors.qualitative.Pastel)
+    fig_treemap = px.treemap(expense_df, path=['Category'], values='Amount', title='Visualizing Your Spending Categories', color_discrete_sequence=px.colors.qualitative.Pastel)
     fig_treemap.update_layout(margin=dict(t=50, l=10, r=10, b=10), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
     st.plotly_chart(fig_treemap, use_container_width=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # --- Section 4: Investment Center ---
-    st.markdown('<div class="report-section">', unsafe_allow_html=True)
-    st.header("📈 Investment Center")
-    mf_df = get_mutual_fund_returns_data()
-    fig_mf = go.Figure()
-    fig_mf.add_trace(go.Bar(
-        x=mf_df['Category'], y=mf_df['5_Year_CAGR'], name='5-Year Avg. Return',
-        marker_color='#3b82f6'
-    ))
-    fig_mf.update_layout(
-        title='Historical Mutual Fund Performance by Category (CAGR)',
-        xaxis_title='Fund Category', yaxis_title='5-Year Average Return (%)',
-        paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)'
-    )
-    st.plotly_chart(fig_mf, use_container_width=True)
-    st.markdown('</div>', unsafe_allow_html=True)
-    
-    # --- Section 5: Future Projections ---
-    st.markdown('<div class="report-section">', unsafe_allow_html=True)
+    # --- Section 4: Future Projections ---
+    st.markdown('<div class="report-section" style="animation-delay: 0.7s;">', unsafe_allow_html=True)
     st.header("💰 Future Projections")
+    monthly_investment = metrics['desired_investment']
     
-    st.subheader("Growth Calculator")
     c1, c2 = st.columns(2)
     with c1:
-        monthly_investment = metrics['desired_investment']
         st.metric("Your Target Monthly Investment", f"₹{monthly_investment:,.0f}")
-    with c2:
         proj_years = st.slider("Investment Horizon (Years)", 5, 40, 20)
+    with c2:
+        st.metric(" ", " ") # Placeholder for alignment
         proj_return = st.slider("Assumed Annual Return (%)", 5, 20, 12)
     
     if monthly_investment > 0:
         years = np.arange(0, proj_years + 1)
-        values = [investment_projection_calculator(monthly_investment, y, proj_return)[0] for y in years]
-        invested = [monthly_investment * y * 12 for y in years]
-        proj_df = pd.DataFrame({'Year': years, 'Projected Value': values, 'Total Invested': invested})
+        values = [investment_projection_calculator(monthly_investment, y, proj_return) for y in years]
+        proj_df = pd.DataFrame({'Year': years, 'Projected Value': [v[0] for v in values], 'Total Invested': [v[1] for v in values]})
         
         fig_proj = go.Figure()
-        fig_proj.add_trace(go.Scatter(x=proj_df['Year'], y=proj_df['Projected Value'], mode='lines', name='Projected Value', fill='tozeroy', line_color='#3b82f6'))
+        fig_proj.add_trace(go.Scatter(x=proj_df['Year'], y=proj_df['Projected Value'], mode='lines', name='Projected Value', fill='tozeroy', line_color='#6366f1'))
         fig_proj.add_trace(go.Scatter(x=proj_df['Year'], y=proj_df['Total Invested'], mode='lines', name='Amount Invested', line=dict(color='#94a3b8', dash='dash')))
         fig_proj.update_layout(title=f"Portfolio Growth over {proj_years} years at {proj_return}%", xaxis_title='Years', yaxis_title='Portfolio Value (₹)', legend=dict(x=0.01, y=0.98), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(fig_proj, use_container_width=True)
-    else:
-        st.info("Your desired investment is currently zero. Increase your savings or investment goal to see projections.")
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # --- Section 6: Action Plan & Download ---
-    st.markdown('<div class="report-section">', unsafe_allow_html=True)
+    # --- Section 5: Action Plan & Download ---
+    st.markdown('<div class="report-section" style="animation-delay: 0.8s;">', unsafe_allow_html=True)
     st.header("🎯 Your Action Plan")
     for rec in recommendations:
-        st.info(rec)
+        st.success(rec)
 
     st.markdown("---")
     c1, c2 = st.columns([2,1])
     with c1:
         st.subheader("📥 Download Full Report")
-        pdf_data = create_pdf_report(metrics, recommendations, health_score, user_data)
-        st.download_button(
-            label="Download as PDF",
-            data=pdf_data,
-            file_name=f"Financial_Report_{datetime.now().strftime('%Y%m%d')}.pdf",
-            mime="application/pdf"
-        )
+        pdf_data = create_pdf_report(metrics, advanced_metrics, recommendations, health_score, user_data)
+        st.download_button("Download as PDF", pdf_data, f"Financial_Report_{datetime.now().strftime('%Y%m%d')}.pdf", "application/pdf")
     with c2:
         if st.button("Start Over & Edit Inputs"):
             st.session_state.report_generated = False
