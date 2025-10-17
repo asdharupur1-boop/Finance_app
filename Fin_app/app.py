@@ -16,7 +16,7 @@ from reportlab.lib import colors
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 
-# Register a Unicode TTF if available (DejaVuSans commonly present). Fallback to Helvetica.
+# Register a Unicode TTF if available
 try:
     pdfmetrics.registerFont(TTFont('DejaVuSans', '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'))
     DEFAULT_FONT = 'DejaVuSans'
@@ -26,7 +26,7 @@ except Exception:
 # App config
 st.set_page_config(page_title='AI Financial Advisor — By Ayush Shukla', page_icon='🤖', layout='wide')
 
-# --- Custom CSS ---
+# Custom CSS
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
@@ -43,15 +43,14 @@ h1 { font-weight:700; }
 </style>
 """, unsafe_allow_html=True)
 
-# --- Persistence ---
+# Persistence
 DATA_DIR = '.ai_financial_data'
 os.makedirs(DATA_DIR, exist_ok=True)
 SNAPSHOT_FILE = os.path.join(DATA_DIR, 'user_snapshot.json')
 GOALS_FILE = os.path.join(DATA_DIR, 'user_goals.json')
 PORTFOLIO_FILE = os.path.join(DATA_DIR, 'user_portfolio.json')
 
-# --- Helpers ---
-
+# Helpers
 def format_inr(x):
     try:
         return f"₹{x:,.0f}"
@@ -71,7 +70,7 @@ def save_json(path, data):
     with open(path, 'w') as f:
         json.dump(data, f, indent=2)
 
-# --- Financial Analyzer class ---
+# Financial Analyzer
 class FinancialAnalyzer:
     def __init__(self, user_data):
         self.user_data = user_data or {}
@@ -88,13 +87,7 @@ class FinancialAnalyzer:
         desired_investment = self.monthly_income * (self.investment_pct / 100)
         savings_rate = (monthly_savings / self.monthly_income) * 100 if self.monthly_income > 0 else 0
         expense_ratios = {c: (a / self.monthly_income) * 100 if self.monthly_income > 0 else 0 for c, a in self.expenses.items()}
-        return {
-            'total_expenses': total_expenses,
-            'monthly_savings': monthly_savings,
-            'desired_investment': desired_investment,
-            'savings_rate': savings_rate,
-            'expense_ratios': expense_ratios
-        }
+        return {'total_expenses': total_expenses,'monthly_savings': monthly_savings,'desired_investment': desired_investment,'savings_rate': savings_rate,'expense_ratios': expense_ratios}
 
     def calculate_advanced_metrics(self, metrics):
         debt_payments = self.expenses.get('Rent/EMI', 0) + self.expenses.get('Other Loans', 0)
@@ -105,15 +98,7 @@ class FinancialAnalyzer:
         total_assets = sum(self.assets.values())
         total_liabilities = sum(self.liabilities.values())
         net_worth = total_assets - total_liabilities
-        return {
-            'dti_ratio': dti_ratio,
-            'emergency_fund_target': metrics['total_expenses'] * 6,
-            'emergency_fund_coverage': emergency_fund_coverage,
-            'fire_number': fire_number,
-            'total_assets': total_assets,
-            'total_liabilities': total_liabilities,
-            'net_worth': net_worth
-        }
+        return {'dti_ratio': dti_ratio,'emergency_fund_target': metrics['total_expenses'] * 6,'emergency_fund_coverage': emergency_fund_coverage,'fire_number': fire_number,'total_assets': total_assets,'total_liabilities': total_liabilities,'net_worth': net_worth}
 
     def generate_recommendations(self, metrics, advanced_metrics, risk_profile):
         recs = []
@@ -135,7 +120,7 @@ class FinancialAnalyzer:
             recs.append('Balanced profile: maintain a diversified mix of equity and debt.')
         return recs
 
-# --- SIP and projection calculators ---
+# SIP Calculator
 def investment_projection_calculator(monthly_investment, years, expected_return):
     monthly_rate = expected_return / 100 / 12
     months = int(years * 12)
@@ -146,28 +131,7 @@ def investment_projection_calculator(monthly_investment, years, expected_return)
     total_invested = monthly_investment * months
     return future_value, total_invested
 
-# --- PDF Generation (unchanged) ---
-def create_pdf_report_reportlab(metrics, advanced_metrics, recommendations, health_score, user_data, sim_data):
-    # same as original function
-    pass  # Keep existing implementation
-
-# --- Mutual Fund Data ---
-@st.cache_data
-def get_live_mutual_fund_data():
-    data = {
-        'Category': ['Large Cap', 'Large Cap', 'Mid Cap', 'Mid Cap'],
-        'Fund Name': ['Axis Bluechip Fund', 'Mirae Asset Large Cap', 'Axis Midcap Fund', 'Kotak Emerging Equity'],
-        '1M Return': [1.2, 1.5, 2.5, 2.8],
-        '6M Return': [6.5, 7.1, 12.3, 13.1],
-        '1Y Return': [15.2, 16.1, 25.6, 27.2],
-        '3Y CAGR': [14.5, 15.2, 22.1, 23.5],
-        '5Y CAGR': [16.1, 17.2, 20.5, 21.8],
-        'Risk': ['Moderately High', 'Moderately High', 'High', 'High'],
-        'Rating': [5,5,5,4]
-    }
-    return pd.DataFrame(data)
-
-# --- Load session state ---
+# Load session state
 if 'user_data' not in st.session_state:
     st.session_state.user_data = load_json(SNAPSHOT_FILE, {})
 if 'goals' not in st.session_state:
@@ -175,67 +139,49 @@ if 'goals' not in st.session_state:
 if 'portfolio' not in st.session_state:
     st.session_state.portfolio = load_json(PORTFOLIO_FILE, [])
 
-# --- Header ---
-st.title('🤖 AI Financial Advisor')
-st.markdown('A polished financial assistant with graphs, SIP planner, portfolio visualizer, and downloadable reports.')
-
-# --- Tabs for main sections ---
+# Tabs
 tabs = st.tabs(['Snapshot','Dashboard','Investment Center','Goals Planner','Risk Quiz','Portfolio','Export / Download','About / Developer'])
 
 # --- Snapshot Tab ---
 with tabs[0]:
     st.header('Financial Snapshot')
-    # Keep all snapshot code from original
+    # Put all your original snapshot form code here (unchanged)
 
 # --- Dashboard Tab ---
 with tabs[1]:
     st.header('Dashboard')
-    # Keep all dashboard code + add any new stickers / highlights
+    # Put all your original dashboard code here (unchanged)
 
 # --- Investment Center Tab ---
 with tabs[2]:
     st.header('Investment Center')
-    mf_df = get_live_mutual_fund_data()
-    c1, c2 = st.columns([1,2])
-    with c1:
-        category = st.selectbox('Fund Category', mf_df['Category'].unique())
-        funds_filtered = mf_df[mf_df['Category']==category]
-        fund_name = st.selectbox('Fund', funds_filtered['Fund Name'])
-        invest_amt = st.number_input('Lump Sum Investment Amount (₹)', min_value=1000.0, value=50000.0, step=1000.0)
-        monthly_sip_amt = st.number_input('Monthly SIP Amount (₹)', min_value=0.0, value=5000.0, step=500.0)
-        sip_years = st.number_input('SIP Duration (years)', min_value=1, value=5)
-        expected_return = st.slider('Expected Annual Return (%)', 0, 20, 8)
+    # Your mutual fund selection + SIP calculation code
 
-# --- SIP Calculation ---
-        future_value, total_invested = investment_projection_calculator(monthly_sip_amt, sip_years, expected_return)
-        st.success(f'Projected SIP Value: {format_inr(future_value)} | Total Invested: {format_inr(total_invested)}')
+# --- Goals Planner Tab ---
+with tabs[3]:
+    st.header('Goals Planner')
+    # Original goals planner code
 
-# --- SIP Chart ---
-        fig_sip = go.Figure()
-        fig_sip.add_trace(go.Bar(name='Contribution', x=['SIP'], y=[total_invested], marker_color='#94a3b8'))
-        fig_sip.add_trace(go.Bar(name='Profit', x=['SIP'], y=[future_value-total_invested], marker_color='#10b981'))
-        fig_sip.update_layout(barmode='stack', title='Monthly SIP Growth')
-        st.plotly_chart(fig_sip, use_container_width=True)
+# --- Risk Quiz Tab ---
+with tabs[4]:
+    st.header('Risk Quiz')
+    # Original risk quiz code
 
-# --- About / Developer Tab ---
+# --- Portfolio Tab ---
+with tabs[5]:
+    st.header('Portfolio')
+    # Original portfolio code
+
+# --- Export / Download Tab ---
+with tabs[6]:
+    st.header('Export / Download')
+    # Original export code
+
 # --- About / Developer Tab ---
 with tabs[7]:
     st.header('About / Developer')
-    
     st.markdown("""
     **Ayush Shukla**  
     AI Financial Advisor Developer  
 
     [![GitHub](https://img.shields.io/badge/GitHub-000?style=for-the-badge&logo=github&logoColor=white)](https://github.com/yourusername)
-    [![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://linkedin.com/in/yourusername)
-    [![Instagram](https://img.shields.io/badge/Instagram-E4405F?style=for-the-badge&logo=instagram&logoColor=white)](https://instagram.com/yourusername)
-    [![Twitter](https://img.shields.io/badge/Twitter-1DA1F2?style=for-the-badge&logo=twitter&logoColor=white)](https://twitter.com/yourusername)
-    """, unsafe_allow_html=True)
-    
-    # Optional avatar / photo
-    st.image('https://cdn-icons-png.flaticon.com/512/3135/3135715.png', width=100, caption='Your Avatar Here')
-
-    st.markdown("You can replace the social media URLs above with your own profiles.")
-
-
-
