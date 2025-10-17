@@ -227,7 +227,8 @@ def investment_projection_calculator(monthly_investment, years, expected_return)
         future_value = monthly_investment * (((1 + monthly_rate) ** months - 1) / monthly_rate)
     else:
         future_value = monthly_investment * months
-    return future_value
+    total_invested = monthly_investment * months
+    return future_value, total_invested
 
 # --- UI Application Flow ---
 
