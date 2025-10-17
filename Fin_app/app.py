@@ -15,16 +15,21 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- NEW Custom CSS for "Gradient Aura" Light Theme with Animations ---
+# --- Custom CSS for "Gradient Aura" Light Theme with Animations ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
     
-    /* Main container with gradient background */
+    /* Force the gradient background on the main body */
+    body {
+        background-image: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%) !important;
+        background-attachment: fixed;
+    }
+
+    /* Make the primary container transparent to show the body's gradient */
     .main .block-container {
         padding: 2rem 5rem;
-        background-color: #f0f2f6; /* Fallback color */
-        background-image: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        background: transparent;
     }
     
     /* Font styles for high contrast */
@@ -94,6 +99,11 @@ st.markdown("""
     }
     
     .report-section {
+        background-color: rgba(255, 255, 255, 0.6);
+        backdrop-filter: blur(5px);
+        border-radius: 12px;
+        padding: 25px;
+        margin-top: 2rem;
         animation: slideInUp 0.8s ease-out;
     }
 </style>
@@ -104,6 +114,9 @@ if 'report_generated' not in st.session_state:
     st.session_state.report_generated = False
 if 'user_data' not in st.session_state:
     st.session_state.user_data = {}
+if 'investment_simulation' not in st.session_state:
+    st.session_state.investment_simulation = {}
+
 
 # --- Financial Analyzer Class ---
 class FinancialAnalyzer:
@@ -183,10 +196,11 @@ class PDF(FPDF):
         self.ln()
 
 def clean_text_for_pdf(text):
+    text = str(text)
     text = text.replace('**', '').replace("🚀", "").replace("👍", "").replace("🎉", "").replace("🔧", "").replace("🔍", "").replace("🤖", "").replace("🛡️", "").replace("🧠", "").replace("📈", "")
     return text.strip()
 
-def create_pdf_report(metrics, advanced_metrics, recommendations, health_score, user_data):
+def create_pdf_report(metrics, advanced_metrics, recommendations, health_score, user_data, sim_data):
     pdf = PDF()
     pdf.add_page()
     pdf.set_font('Helvetica', '', 10)
@@ -207,6 +221,14 @@ def create_pdf_report(metrics, advanced_metrics, recommendations, health_score, 
         f"Emergency Fund Coverage: {advanced_metrics['emergency_fund_coverage']:.1f} months"
     )
 
+    if sim_data:
+        pdf.chapter_title("Investment Simulation Summary")
+        pdf.chapter_body(
+            f"Fund Selected: {sim_data['fund_name']}\n"
+            f"Initial Investment: INR {sim_data['amount']:,.0f}\n"
+            f"Growth over 5 Years (Simulated): INR {sim_data['5Y_value']:,.0f} (Gain of INR {sim_data['5Y_gain']:,.0f})"
+        )
+
     pdf.chapter_title("Actionable Recommendations")
     for i, rec in enumerate(recommendations, 1):
         rec_text = clean_text_for_pdf(rec)
@@ -216,9 +238,20 @@ def create_pdf_report(metrics, advanced_metrics, recommendations, health_score, 
 
 # --- Data & Calculation Functions ---
 @st.cache_data
-def get_mutual_fund_returns_data():
-    mf_data = {'Category': ['Large Cap', 'Flexi Cap', 'ELSS', 'Mid Cap', 'Small Cap', 'Hybrid','Debt', 'Index'],'1_Year_Return': [12.15, 14.95, 16.05, 19.50, 23.40, 11.00, 8.00, 12.00],'3_Year_CAGR': [14.00, 16.20, 17.00, 20.15, 24.15, 11.90, 8.70, 13.65],'5_Year_CAGR': [13.50, 15.50, 16.30, 18.65, 22.65, 11.35, 8.35, 13.05],'Risk_Level': ['Medium', 'Medium-High', 'High', 'High', 'Very High', 'Low-Medium','Low', 'Medium']}
-    return pd.DataFrame(mf_data)
+def get_live_mutual_fund_data():
+    # SIMULATED REAL-TIME DATA: In a real app, this would come from an API
+    data = {
+        'Category': ['Large Cap', 'Large Cap', 'Mid Cap', 'Mid Cap', 'Small Cap', 'Small Cap', 'Flexi Cap', 'Flexi Cap', 'ELSS', 'ELSS', 'Debt', 'Debt', 'Index', 'Index'],
+        'Fund Name': ['Axis Bluechip Fund', 'Mirae Asset Large Cap', 'Axis Midcap Fund', 'Kotak Emerging Equity', 'Axis Small Cap Fund', 'SBI Small Cap Fund', 'Parag Parikh Flexi Cap', 'PGIM India Flexi Cap', 'Mirae Asset Tax Saver', 'Canara Robeco Equity Tax Saver', 'ICICI Prudential Corporate Bond', 'HDFC Short Term Debt', 'UTI Nifty 50 Index Fund', 'HDFC Sensex Index Fund'],
+        '1M Return': [1.2, 1.5, 2.5, 2.8, 4.1, 4.5, 2.1, 2.3, 1.8, 1.9, 0.6, 0.5, 1.1, 1.0],
+        '6M Return': [6.5, 7.1, 12.3, 13.1, 18.2, 19.5, 10.5, 11.2, 9.8, 10.1, 3.5, 3.2, 6.8, 6.5],
+        '1Y Return': [15.2, 16.1, 25.6, 27.2, 35.8, 38.2, 22.1, 24.5, 20.3, 21.1, 7.1, 6.8, 15.5, 15.1],
+        '3Y CAGR': [14.5, 15.2, 22.1, 23.5, 28.9, 30.1, 19.8, 21.2, 18.5, 19.2, 6.5, 6.2, 14.8, 14.5],
+        '5Y CAGR': [16.1, 17.2, 20.5, 21.8, 25.4, 26.8, 18.9, 20.1, 17.2, 18.1, 7.5, 7.2, 15.1, 14.8],
+        'Risk': ['Moderately High', 'Moderately High', 'High', 'High', 'Very High', 'Very High', 'Very High', 'Very High', 'High', 'High', 'Low to Moderate', 'Low to Moderate', 'Moderately High', 'Moderately High'],
+        'Rating': [5, 5, 5, 4, 5, 4, 5, 4, 5, 4, 4, 3, 5, 4]
+    }
+    return pd.DataFrame(data)
 
 def investment_projection_calculator(monthly_investment, years, expected_return):
     monthly_rate = expected_return / 100 / 12
@@ -302,7 +335,7 @@ def analytics_report_page():
     c3.markdown(f'<div class="metric-card"><h4>🏦 Monthly Savings</h4><h3>₹{metrics["monthly_savings"]:,.0f}</h3><p style="color: #10b981; font-weight: bold;">{metrics["savings_rate"]:.1f}% Savings Rate</p></div>', unsafe_allow_html=True)
     
     # --- Section 2: Financial Health Deep-Dive ---
-    st.markdown('<div class="report-section" style="animation-delay: 0.5s;">', unsafe_allow_html=True)
+    st.markdown('<div class="report-section">', unsafe_allow_html=True)
     st.header("❤️ Financial Health Deep-Dive")
     
     c1, c2 = st.columns(2)
@@ -310,12 +343,14 @@ def analytics_report_page():
         st.subheader("Overall Health Score")
         fig_gauge = go.Figure(go.Indicator(mode="gauge+number", value=health_score, title={'text': "Score"},
             gauge={'axis': {'range': [None, 100]}, 'bar': {'color': "#6366f1"}, 'steps': [{'range': [0, 40], 'color': "#fee2e2"}, {'range': [40, 70], 'color': "#fef3c7"}, {'range': [70, 100], 'color': '#dcfce7'}]}))
+        fig_gauge.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(fig_gauge, use_container_width=True)
     with c2:
         st.subheader("Debt-to-Income (DTI) Ratio")
         dti_val = advanced_metrics['dti_ratio']
         fig_dti = go.Figure(go.Indicator(mode="gauge+number", value=dti_val, title={'text': "% of Income"},
             gauge={'axis': {'range': [None, 100]}, 'bar': {'color': "#6366f1"}, 'steps': [{'range': [0, 35], 'color': '#dcfce7'}, {'range': [35, 43], 'color': "#fef3c7"}, {'range': [43, 100], 'color': '#fee2e2'}]}))
+        fig_dti.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(fig_dti, use_container_width=True)
 
     st.subheader("Emergency Fund Status")
@@ -325,7 +360,7 @@ def analytics_report_page():
     st.markdown('</div>', unsafe_allow_html=True)
     
     # --- Section 3: Expense Analysis ---
-    st.markdown('<div class="report-section" style="animation-delay: 0.6s;">', unsafe_allow_html=True)
+    st.markdown('<div class="report-section">', unsafe_allow_html=True)
     st.header("💸 Expense Breakdown")
     expense_df = pd.DataFrame(list(user_data['expenses'].items()), columns=['Category', 'Amount']).sort_values('Amount', ascending=False)
     expense_df = expense_df[expense_df['Amount'] > 0]
@@ -334,18 +369,74 @@ def analytics_report_page():
     st.plotly_chart(fig_treemap, use_container_width=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # --- Section 4: Future Projections ---
-    st.markdown('<div class="report-section" style="animation-delay: 0.7s;">', unsafe_allow_html=True)
-    st.header("💰 Future Projections")
+    # --- NEW Section 4: Investment Center & Market Analysis ---
+    st.markdown('<div class="report-section">', unsafe_allow_html=True)
+    st.header("🔍 Investment Center & Market Analysis")
+    st.info("This section provides simulated real-time data for popular mutual funds to help you make informed decisions.")
+
+    mf_df = get_live_mutual_fund_data()
+
+    c1, c2 = st.columns([1, 2])
+    with c1:
+        st.subheader("Fund Explorer")
+        category = st.selectbox("Select Fund Category", mf_df['Category'].unique())
+        
+        filtered_funds = mf_df[mf_df['Category'] == category]
+        fund_name = st.selectbox("Select Fund", filtered_funds['Fund Name'])
+        
+        investment_amount = st.number_input("Enter Investment Amount (₹)", 1000, 10000000, 50000, 1000)
+        
+        selected_fund = mf_df[mf_df['Fund Name'] == fund_name].iloc[0]
+        
+        st.subheader("Fund Details")
+        st.markdown(f"**Risk Level:** `{selected_fund['Risk']}`")
+        st.markdown(f"**Rating:** {'★' * selected_fund['Rating']}{'☆' * (5 - selected_fund['Rating'])}")
+
+    with c2:
+        st.subheader(f"Simulated Growth of ₹{investment_amount:,.0f} in {fund_name}")
+        
+        periods = ['1M', '6M', '1Y', '3Y', '5Y']
+        returns = [selected_fund['1M Return'], selected_fund['6M Return'], selected_fund['1Y Return'], selected_fund['3Y CAGR'], selected_fund['5Y CAGR']]
+        
+        final_values = []
+        for i, period in enumerate(periods):
+            num_years = {'1M': 1/12, '6M': 0.5, '1Y': 1, '3Y': 3, '5Y': 5}[period]
+            is_cagr = 'CAGR' in period or 'Y' in period
+            if is_cagr:
+                final_value = investment_amount * ((1 + returns[i]/100) ** num_years)
+            else: # Simple return for periods < 1 year
+                final_value = investment_amount * (1 + returns[i]/100)
+            final_values.append(final_value)
+
+        gains = [val - investment_amount for val in final_values]
+        
+        # Store for PDF
+        st.session_state.investment_simulation = {
+            'fund_name': fund_name, 'amount': investment_amount, 
+            '5Y_value': final_values[-1], '5Y_gain': gains[-1]
+        }
+
+        fig_growth = go.Figure(data=[
+            go.Bar(name='Initial Investment', x=periods, y=[investment_amount]*len(periods), marker_color='#94a3b8'),
+            go.Bar(name='Profit', x=periods, y=gains, marker_color='#10b981')
+        ])
+        fig_growth.update_layout(barmode='stack', title_text='Investment vs. Profit', xaxis_title='Time Period', yaxis_title='Value (₹)', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+        st.plotly_chart(fig_growth, use_container_width=True)
+
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    # --- Section 5: Future Projections ---
+    st.markdown('<div class="report-section">', unsafe_allow_html=True)
+    st.header("💰 Future Projections (SIP)")
     monthly_investment = metrics['desired_investment']
     
     c1, c2 = st.columns(2)
     with c1:
-        st.metric("Your Target Monthly Investment", f"₹{monthly_investment:,.0f}")
-        proj_years = st.slider("Investment Horizon (Years)", 5, 40, 20)
+        st.metric("Your Target Monthly Investment (SIP)", f"₹{monthly_investment:,.0f}")
+        proj_years = st.slider("Investment Horizon (Years)", 5, 40, 20, key='sip_years')
     with c2:
         st.metric(" ", " ") # Placeholder for alignment
-        proj_return = st.slider("Assumed Annual Return (%)", 5, 20, 12)
+        proj_return = st.slider("Assumed Annual Return (%)", 5, 20, 12, key='sip_return')
     
     if monthly_investment > 0:
         years = np.arange(0, proj_years + 1)
@@ -355,12 +446,12 @@ def analytics_report_page():
         fig_proj = go.Figure()
         fig_proj.add_trace(go.Scatter(x=proj_df['Year'], y=proj_df['Projected Value'], mode='lines', name='Projected Value', fill='tozeroy', line_color='#6366f1'))
         fig_proj.add_trace(go.Scatter(x=proj_df['Year'], y=proj_df['Total Invested'], mode='lines', name='Amount Invested', line=dict(color='#94a3b8', dash='dash')))
-        fig_proj.update_layout(title=f"Portfolio Growth over {proj_years} years at {proj_return}%", xaxis_title='Years', yaxis_title='Portfolio Value (₹)', legend=dict(x=0.01, y=0.98), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+        fig_proj.update_layout(title=f"SIP Growth over {proj_years} years at {proj_return}%", xaxis_title='Years', yaxis_title='Portfolio Value (₹)', legend=dict(x=0.01, y=0.98), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(fig_proj, use_container_width=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # --- Section 5: Action Plan & Download ---
-    st.markdown('<div class="report-section" style="animation-delay: 0.8s;">', unsafe_allow_html=True)
+    # --- Section 6: Action Plan & Download ---
+    st.markdown('<div class="report-section">', unsafe_allow_html=True)
     st.header("🎯 Your Action Plan")
     for rec in recommendations:
         st.success(rec)
@@ -369,11 +460,12 @@ def analytics_report_page():
     c1, c2 = st.columns([2,1])
     with c1:
         st.subheader("📥 Download Full Report")
-        pdf_data = create_pdf_report(metrics, advanced_metrics, recommendations, health_score, user_data)
+        pdf_data = create_pdf_report(metrics, advanced_metrics, recommendations, health_score, user_data, st.session_state.investment_simulation)
         st.download_button("Download as PDF", pdf_data, f"Financial_Report_{datetime.now().strftime('%Y%m%d')}.pdf", "application/pdf")
     with c2:
         if st.button("Start Over & Edit Inputs"):
             st.session_state.report_generated = False
+            st.session_state.investment_simulation = {}
             st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
 
