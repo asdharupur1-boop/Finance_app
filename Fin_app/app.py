@@ -982,47 +982,67 @@ elif st.session_state.current_page == "📥 Export / Download":
                 )
 
 # --- About / Developer Page ---
+# ... (keep all previous code the same until the About / Developer page section)
+
+# --- About / Developer Page ---
 elif st.session_state.current_page == "👨‍💻 About / Developer":
     st.header('👨‍💻 About the Developer')
     
-    st.markdown("""
-    <div class='developer-section'>
-        <h2>Ayush Shukla</h2>
-        <p>Full Stack Developer & Financial Technology Enthusiast</p>
-        <p>Building intelligent financial solutions to empower better money management</p>
-        
-        <div class='social-links'>
-            <a href='https://github.com/ayushshukla' class='social-link' target='_blank'>
-                📱 GitHub
-            </a>
-            <a href='https://linkedin.com/in/ayushshukla' class='social-link' target='_blank'>
-                💼 LinkedIn
-            </a>
-            <a href='https://twitter.com/ayushshukla' class='social-link' target='_blank'>
-                🐦 Twitter
-            </a>
-            <a href='https://ayushshukla.xyz' class='social-link' target='_blank'>
-                🌐 Portfolio
-            </a>
+    # Developer Profile Section
+    col1, col2 = st.columns([1, 2])
+    
+    with col1:
+        st.markdown("""
+        <div style='text-align: center;'>
+            <div style='font-size: 4rem; margin-bottom: 1rem;'>👨‍💻</div>
+            <h2>Ayush Shukla</h2>
+            <p style='color: #64748b;'>Full Stack Developer & FinTech Enthusiast</p>
         </div>
-    </div>
-    """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
+    
+    with col2:
+        st.markdown("""
+        <div class='metric-card'>
+            <h3>🚀 About Me</h3>
+            <p>Building intelligent financial solutions to empower better money management and financial literacy for everyone.</p>
+            <p>Passionate about creating tools that make complex financial concepts accessible and actionable.</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    # Social Links - Using Streamlit buttons instead of HTML
+    st.markdown("### 📱 Connect With Me")
+    social_cols = st.columns(4)
+    
+    with social_cols[0]:
+        if st.button("🐙 GitHub", use_container_width=True):
+            st.markdown("[Visit GitHub Profile](https://github.com/ayushshukla)")
+    with social_cols[1]:
+        if st.button("💼 LinkedIn", use_container_width=True):
+            st.markdown("[Visit LinkedIn Profile](https://linkedin.com/in/ayushshukla)")
+    with social_cols[2]:
+        if st.button("🐦 Twitter", use_container_width=True):
+            st.markdown("[Visit Twitter Profile](https://twitter.com/ayushshukla)")
+    with social_cols[3]:
+        if st.button("🌐 Portfolio", use_container_width=True):
+            st.markdown("[Visit Portfolio](https://ayushshukla.xyz)")
     
     st.markdown("---")
     
+    # App Information
     col1, col2 = st.columns(2)
     
     with col1:
         st.markdown("""
         <div class='metric-card'>
-            <h3>🚀 About This App</h3>
-            <p>AI Financial Advisor is a comprehensive personal finance management tool that helps you:</p>
+            <h3>📊 About This App</h3>
+            <p><strong>AI Financial Advisor</strong> is a comprehensive personal finance management tool that helps you:</p>
             <ul>
-                <li>Track income and expenses</li>
-                <li>Plan investments and SIPs</li>
-                <li>Set and achieve financial goals</li>
-                <li>Understand your risk profile</li>
-                <li>Generate detailed financial reports</li>
+                <li>📈 Track income and expenses</li>
+                <li>💰 Plan investments and SIPs</li>
+                <li>🎯 Set and achieve financial goals</li>
+                <li>🛡️ Understand your risk profile</li>
+                <li>📄 Generate detailed financial reports</li>
+                <li>🏦 Monitor net worth growth</li>
             </ul>
         </div>
         """, unsafe_allow_html=True)
@@ -1031,30 +1051,93 @@ elif st.session_state.current_page == "👨‍💻 About / Developer":
         st.markdown("""
         <div class='metric-card'>
             <h3>🛠️ Technology Stack</h3>
-            <p>Built with modern technologies for optimal performance:</p>
+            <p>Built with modern technologies for optimal performance and user experience:</p>
             <ul>
                 <li><strong>Frontend:</strong> Streamlit, Plotly</li>
                 <li><strong>Backend:</strong> Python, Pandas, NumPy</li>
-                <li><strong>Data Visualization:</strong> Plotly, Chart.js</li>
-                <li><strong>PDF Generation:</strong> ReportLab</li>
-                <li><strong>Data Storage:</strong> JSON files</li>
+                <li><strong>Data Visualization:</strong> Plotly Express, Graph Objects</li>
+                <li><strong>PDF Generation:</strong> ReportLab with Unicode support</li>
+                <li><strong>Data Storage:</strong> Secure JSON file system</li>
+                <li><strong>Styling:</strong> Custom CSS with gradients</li>
             </ul>
         </div>
         """, unsafe_allow_html=True)
     
+    # Features Grid
+    st.markdown("### ✨ Key Features")
+    feature_cols = st.columns(3)
+    
+    with feature_cols[0]:
+        st.markdown("""
+        <div class='financial-sticker'>
+            <div style='font-size: 2rem;'>📊</div>
+            <h4>Financial Snapshot</h4>
+            <p>Complete financial profile with income, expenses, assets, and liabilities</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.markdown("""
+        <div class='financial-sticker'>
+            <div style='font-size: 2rem;'>💹</div>
+            <h4>Investment Center</h4>
+            <p>Mutual fund analysis with lump sum and SIP calculators</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with feature_cols[1]:
+        st.markdown("""
+        <div class='financial-sticker'>
+            <div style='font-size: 2rem;'>🎯</div>
+            <h4>Goals Planning</h4>
+            <p>Set financial goals and calculate required SIP amounts</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.markdown("""
+        <div class='financial-sticker'>
+            <div style='font-size: 2rem;'>📈</div>
+            <h4>Risk Assessment</h4>
+            <p>Personalized risk profile quiz and investment recommendations</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with feature_cols[2]:
+        st.markdown("""
+        <div class='financial-sticker'>
+            <div style='font-size: 2rem;'>💼</div>
+            <h4>Portfolio Manager</h4>
+            <p>Track and visualize your investment portfolio allocation</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.markdown("""
+        <div class='financial-sticker'>
+            <div style='font-size: 2rem;'>📥</div>
+            <h4>Export Reports</h4>
+            <p>Generate comprehensive PDF reports with all your financial data</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    # Contact Information
+    st.markdown("---")
     st.markdown("""
-    <div class='financial-sticker'>
+    <div class='metric-card' style='text-align: center;'>
         <h3>📞 Get In Touch</h3>
-        <p>Have questions, suggestions, or want to collaborate? Feel free to reach out!</p>
-        <p>📧 Email: ayush.shukla@example.com</p>
+        <p>Have questions, suggestions, or want to collaborate on financial technology projects?</p>
+        <p>I'd love to hear from you!</p>
+        <p>📧 <strong>Email:</strong> ayush.shukla@example.com</p>
+        <p>💼 <strong>LinkedIn:</strong> linkedin.com/in/ayushshukla</p>
+        <p>🐙 <strong>GitHub:</strong> github.com/ayushshukla</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Mission Statement
+    st.markdown("""
+    <div class='financial-sticker' style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;'>
+        <h3 style='color: white;'>🎯 My Mission</h3>
+        <p style='color: white;'>To democratize financial knowledge and empower individuals with tools that make 
+        personal finance management accessible, understandable, and actionable for everyone.</p>
     </div>
     """, unsafe_allow_html=True)
 
-# --- Footer ---
-st.markdown("---")
-st.markdown("""
-<div style='text-align: center; color: #64748b; padding: 2rem;'>
-    <p>Built with ❤️ by Ayush Shukla | AI Financial Advisor v2.0</p>
-    <p>💡 Your financial journey starts here!</p>
-</div>
-""", unsafe_allow_html=True)
+# ... (keep the rest of the code the same)
