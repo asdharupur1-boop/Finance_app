@@ -240,7 +240,7 @@ class FinancialAnalyzer:
         self.monthly_income = float(self.user_data.get('monthly_income', 0) or 0)
         self.expenses = {k: float(v or 0) for k, v in self.user_data.get('expenses', {}).items()}
         self.investment_pct = float(self.user_data.get('investment_percentage', 0) or 0)
-        self.current_savings = float(self.user_data.get('current_savings', 0) or 0)
+        self.current_savings = float(self.user_state.get('current_savings', 0) or 0)
         self.assets = {k: float(v or 0) for k, v in self.user_data.get('assets', {}).items()}
         self.liabilities = {k: float(v or 0) for k, v in self.user_data.get('liabilities', {}).items()}
 
@@ -685,5 +685,4 @@ elif selected_option == "💹 Investment Center":
         <div class='emoji-container'>📈</div>
         <h3>Smart Investing Made Simple</h3>
         <p>Explore mutual funds, simulate growth, and plan your SIP investments.</p>
-    </div>
-    """, unsafe
+    </
