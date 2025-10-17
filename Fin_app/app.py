@@ -220,9 +220,10 @@ with tabs[2]:
 # --- About / Developer Tab ---
 with tabs[7]:
     st.header('About / Developer')
-    st.markdown('**Ayush Shukla**  
+    st.markdown('''**Ayush Shukla**  
 AI Financial Advisor Developer')
     st.markdown("[![GitHub](https://img.shields.io/badge/GitHub-000?style=for-the-badge&logo=github&logoColor=white)](https://github.com/yourusername) "
-                "[![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://linkedin.com/in/yourusername)")
+                "[![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://linkedin.com/in/yourusername)")'''
     st.markdown('You can replace these URLs with your social media profiles.')
     st.image('https://cdn-icons-png.flaticon.com/512/3135/3135715.png', width=100)  # example avatar
+
