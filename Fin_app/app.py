@@ -24,7 +24,7 @@ except Exception:
     DEFAULT_FONT = 'Helvetica'
 
 # --- App Config ---
-st.set_page_config(page_title='AI Financial Advisor — Professional Light (Pro)', page_icon='🤖', layout='wide')
+st.set_page_config(page_title='AI Financial Advisor — By  Ayush Shukla', page_icon='🤖', layout='wide')
 
 # --- CSS: Professional Light theme ---
 st.markdown("""
@@ -245,8 +245,9 @@ if 'portfolio' not in st.session_state:
     st.session_state.portfolio = load_json(PORTFOLIO_FILE, [])
 
 # --- App UI ---
-st.title('AI Financial Advisor — Professional Light (Pro)')
+st.title('AI Financial Advisor')
 st.write('A polished light UI with net-worth, goals, risk profiling, portfolio visualizer and Unicode PDF export.')
+st.write('No Worry its Confidental')
 
 # Top-level navigation
 page = st.sidebar.selectbox('Navigate', ['Snapshot', 'Dashboard', 'Investment Center', 'Goals Planner', 'Risk Quiz', 'Portfolio', 'Export / Download', 'Settings'])
@@ -498,4 +499,5 @@ elif page == 'Settings':
 
 # final note
 st.sidebar.markdown('---')
-st.sidebar.markdown('Built with ❤️  • Professional Light Theme')
+st.sidebar.markdown('Built By Ayush Shukla')
+
