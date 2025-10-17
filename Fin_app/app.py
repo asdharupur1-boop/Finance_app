@@ -178,10 +178,19 @@ with tabs[6]:
     # Original export code
 
 # --- About / Developer Tab ---
+# --- About / Developer Tab ---
 with tabs[7]:
     st.header('About / Developer')
     st.markdown("""
-    **Ayush Shukla**  
-    AI Financial Advisor Developer  
+**Ayush Shukla**  
+AI Financial Advisor Developer  
 
-    [![GitHub](https://img.shields.io/badge/GitHub-000?style=for-the-badge&logo=github&logoColor=white)](https://github.com/yourusername)
+[![GitHub](https://img.shields.io/badge/GitHub-000?style=for-the-badge&logo=github&logoColor=white)](https://github.com/yourusername)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://linkedin.com/in/yourusername)
+[![Instagram](https://img.shields.io/badge/Instagram-E4405F?style=for-the-badge&logo=instagram&logoColor=white)](https://instagram.com/yourusername)
+[![Twitter](https://img.shields.io/badge/Twitter-1DA1F2?style=for-the-badge&logo=twitter&logoColor=white)](https://twitter.com/yourusername)
+""", unsafe_allow_html=True)
+
+    st.image('https://cdn-icons-png.flaticon.com/512/3135/3135715.png', width=100, caption='Your Avatar Here')
+    st.markdown("You can replace the social media URLs above with your own profiles.")
+
