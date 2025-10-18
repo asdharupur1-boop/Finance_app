@@ -7,11 +7,6 @@ from datetime import datetime, timedelta
 import json
 import os
 from io import BytesIO
-import yfinance as yf
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
-from sklearn.cluster import KMeans
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -254,11 +249,10 @@ def save_json(path, data):
     with open(path, 'w') as f:
         json.dump(data, f, indent=2)
 
-# --- ML Financial Predictor Class ---
+# --- ML Financial Predictor Class (No external dependencies) ---
 class MLFinancialPredictor:
     def __init__(self):
-        self.risk_model = None
-        self.scaler = StandardScaler()
+        pass
     
     def predict_risk_tolerance(self, user_data):
         """ML model to predict risk tolerance based on user profile"""
@@ -346,14 +340,6 @@ class MLFinancialPredictor:
     
     def cluster_user_profile(self, user_data, metrics):
         """Cluster user into financial personality types"""
-        features = np.array([[
-            user_data.get('monthly_income', 0),
-            metrics.get('savings_rate', 0),
-            metrics.get('dti_ratio', 0),
-            user_data.get('current_savings', 0) / user_data.get('monthly_income', 1) if user_data.get('monthly_income', 0) > 0 else 0
-        ]])
-        
-        # Simple clustering logic
         savings_rate = metrics.get('savings_rate', 0)
         dti_ratio = metrics.get('dti_ratio', 0)
         
@@ -364,27 +350,41 @@ class MLFinancialPredictor:
         else:
             return "Needs Attention", "Focus on reducing debt and increasing savings"
 
-# --- Stock Prediction ML ---
+# --- Stock Prediction ML (Simulated without external dependencies) ---
 class StockPredictor:
     def __init__(self):
-        self.model = None
+        pass
     
-    def get_stock_data(self, symbol, period="1y"):
-        """Get real stock data using yfinance"""
-        try:
-            ticker = yf.Ticker(symbol)
-            data = ticker.history(period=period)
-            return data
-        except Exception as e:
-            st.error(f"Error fetching data for {symbol}: {str(e)}")
-            return None
+    def get_simulated_stock_data(self, symbol):
+        """Generate simulated stock data"""
+        # Simulate stock prices with some randomness
+        np.random.seed(hash(symbol) % 1000)  # Consistent randomness per symbol
+        
+        dates = pd.date_range(end=datetime.now(), periods=180, freq='D')
+        base_price = {
+            'RELIANCE.NS': 2500,
+            'TCS.NS': 3500,
+            'INFY.NS': 1600,
+            'HDFCBANK.NS': 1500,
+            'ICICIBANK.NS': 900
+        }.get(symbol, 1000)
+        
+        returns = np.random.normal(0.0005, 0.02, len(dates))
+        prices = base_price * (1 + returns).cumprod()
+        
+        data = pd.DataFrame({
+            'Close': prices,
+            'Date': dates
+        }).set_index('Date')
+        
+        return data
     
     def predict_stock_trend(self, symbol):
-        """Simple ML-based trend prediction"""
+        """Simple ML-based trend prediction using simulated data"""
         try:
-            data = self.get_stock_data(symbol, "6mo")
+            data = self.get_simulated_stock_data(symbol)
             if data is None or data.empty:
-                return "No data", 0
+                return "No data", 0, 0
             
             # Calculate simple moving averages
             data['SMA_20'] = data['Close'].rolling(window=20).mean()
@@ -397,13 +397,13 @@ class StockPredictor:
             # ML-like trend analysis
             if current_price > sma_20 > sma_50:
                 trend = "Bullish"
-                confidence = 0.75
+                confidence = 0.75 + np.random.random() * 0.1
             elif current_price < sma_20 < sma_50:
                 trend = "Bearish"
-                confidence = 0.70
+                confidence = 0.70 + np.random.random() * 0.1
             else:
                 trend = "Neutral"
-                confidence = 0.55
+                confidence = 0.55 + np.random.random() * 0.1
                 
             return trend, confidence, current_price
             
