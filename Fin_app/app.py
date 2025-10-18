@@ -10,6 +10,15 @@ from io import BytesIO
 import warnings
 warnings.filterwarnings('ignore')
 
+# Import for PDF generation
+from reportlab.lib.pagesizes import letter, A4
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
+from reportlab.lib import colors
+from reportlab.pdfgen import canvas
+import base64
+
 # Set page config
 st.set_page_config(
     page_title='AI Financial Advisor — By Ayush Shukla', 
@@ -18,7 +27,7 @@ st.set_page_config(
     initial_sidebar_state='auto'
 )
 
-# Enhanced Light Theme with Black Text
+# Enhanced Light Theme with Different Widget Colors
 st.markdown("""
 <style>
     /* Global styles */
@@ -39,28 +48,35 @@ st.markdown("""
         max-width: 1400px;
     }
     
-    /* All text black */
-    h1, h2, h3, h4, h5, h6, p, div, span, label, .stMarkdown, .stText, .stNumberInput, .stSelectbox, .stSlider {
-        color: #000000 !important;
+    /* Different text colors for better visibility */
+    h1, h2, h3, h4, h5, h6 {
+        color: #1e293b !important;
+        font-weight: 600 !important;
     }
     
-    /* Metric cards */
-    .metric-card {
-        background: #ffffff;
-        border: 1px solid #e2e8f0;
-        border-radius: 12px;
-        padding: 1.5rem;
-        margin: 0.5rem 0;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        transition: transform 0.2s ease;
+    p, div, span, label, .stMarkdown, .stText {
+        color: #374151 !important;
     }
     
-    .metric-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    /* Widget styling with different colors */
+    .stNumberInput>div>div>input, .stTextInput>div>div>input {
+        color: #1e293b !important;
+        background-color: #f8fafc !important;
+        border: 2px solid #cbd5e1 !important;
+        border-radius: 8px !important;
     }
     
-    /* Buttons */
+    .stSelectbox>div>div>select {
+        color: #1e293b !important;
+        background-color: #f8fafc !important;
+        border: 2px solid #cbd5e1 !important;
+        border-radius: 8px !important;
+    }
+    
+    .stSlider>div>div>div>div {
+        background-color: #3b82f6 !important;
+    }
+    
     .stButton>button {
         background-color: #3b82f6;
         color: white;
@@ -74,12 +90,123 @@ st.markdown("""
     .stButton>button:hover {
         background-color: #2563eb;
         transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
     }
     
-    /* Input fields */
-    .stNumberInput>div>div>input, .stTextInput>div>div>input, .stSelectbox>div>div>select {
-        color: #000000 !important;
-        border: 1px solid #d1d5db;
+    /* Quiz specific styling */
+    .quiz-question {
+        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+        border: 2px solid #7dd3fc;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin: 1rem 0;
+    }
+    
+    .quiz-option {
+        background: white;
+        border: 2px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 1rem;
+        margin: 0.5rem 0;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .quiz-option:hover {
+        border-color: #3b82f6;
+        background-color: #f0f9ff;
+    }
+    
+    .quiz-option.selected {
+        border-color: #3b82f6;
+        background-color: #dbeafe;
+    }
+    
+    /* Metric cards with different colors */
+    .metric-card {
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin: 0.5rem 0;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        transition: transform 0.2s ease;
+    }
+    
+    .metric-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        border-color: #3b82f6;
+    }
+    
+    /* Custom components with different colors */
+    .ml-insight {
+        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+        border: 2px solid #7dd3fc;
+        border-radius: 8px;
+        padding: 1rem;
+        margin: 0.5rem 0;
+        color: #0c4a6e !important;
+    }
+    
+    .financial-sticker {
+        background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+        border: 2px solid #86efac;
+        border-radius: 8px;
+        padding: 1rem;
+        margin: 0.5rem 0;
+        color: #166534 !important;
+    }
+    
+    .ai-prediction {
+        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+        border: 2px solid #fcd34d;
+        border-radius: 8px;
+        padding: 1rem;
+        margin: 0.5rem 0;
+        color: #92400e !important;
+    }
+    
+    .warning-card {
+        background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+        border: 2px solid #fca5a5;
+        border-radius: 8px;
+        padding: 1rem;
+        margin: 0.5rem 0;
+        color: #dc2626 !important;
+    }
+    
+    /* Personality result cards */
+    .personality-conservative {
+        background: linear-gradient(135deg, #dbeafe 0%, #93c5fd 100%);
+        border: 3px solid #3b82f6;
+        border-radius: 12px;
+        padding: 2rem;
+        margin: 1rem 0;
+    }
+    
+    .personality-moderate {
+        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+        border: 3px solid #f59e0b;
+        border-radius: 12px;
+        padding: 2rem;
+        margin: 1rem 0;
+    }
+    
+    .personality-aggressive {
+        background: linear-gradient(135deg, #fecaca 0%, #fca5a5 100%);
+        border: 3px solid #ef4444;
+        border-radius: 12px;
+        padding: 2rem;
+        margin: 1rem 0;
+    }
+    
+    .personality-balanced {
+        background: linear-gradient(135deg, #bbf7d0 0%, #86efac 100%);
+        border: 3px solid #22c55e;
+        border-radius: 12px;
+        padding: 2rem;
+        margin: 1rem 0;
     }
     
     /* Mobile responsiveness */
@@ -105,53 +232,238 @@ st.markdown("""
         background-color: transparent !important;
     }
     
-    /* Custom components */
-    .ml-insight {
-        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-        border: 1px solid #bae6fd;
+    /* Social links styling */
+    .social-link {
+        display: inline-block;
+        padding: 10px 20px;
+        margin: 5px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white !important;
+        text-decoration: none;
         border-radius: 8px;
-        padding: 1rem;
-        margin: 0.5rem 0;
-        color: #000000 !important;
+        transition: all 0.3s ease;
+        text-align: center;
     }
     
-    .financial-sticker {
-        background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
-        border: 1px solid #bbf7d0;
-        border-radius: 8px;
-        padding: 1rem;
-        margin: 0.5rem 0;
-        color: #000000 !important;
-    }
-    
-    .ai-prediction {
-        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-        border: 1px solid #fcd34d;
-        border-radius: 8px;
-        padding: 1rem;
-        margin: 0.5rem 0;
-        color: #000000 !important;
-    }
-    
-    .report-section {
-        background: #ffffff;
-        border: 1px solid #e5e7eb;
-        border-radius: 8px;
-        padding: 1.5rem;
-        margin: 1rem 0;
-    }
-    
-    /* Data table styling */
-    .dataframe {
-        color: #000000 !important;
-    }
-    
-    /* Progress bars */
-    .stProgress > div > div > div > div {
-        background-color: #3b82f6;
+    .social-link:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        color: white !important;
+        text-decoration: none;
     }
 </style>
 """, unsafe_allow_html=True)
+
+# --- Financial Behavior Quiz Class ---
+class FinancialBehaviorQuiz:
+    def __init__(self):
+        self.questions = [
+            {
+                'id': 1,
+                'question': '💰 How do you react when the stock market drops by 20% in a short period?',
+                'options': [
+                    {'text': 'Sell everything immediately to prevent further losses', 'score': 1, 'type': 'risk_aversion'},
+                    {'text': 'Hold my investments and wait for recovery', 'score': 3, 'type': 'patience'},
+                    {'text': 'Review my portfolio but maintain my strategy', 'score': 5, 'type': 'discipline'},
+                    {'text': 'Buy more stocks at discounted prices', 'score': 7, 'type': 'opportunistic'}
+                ]
+            },
+            {
+                'id': 2,
+                'question': '📈 What is your primary investment goal?',
+                'options': [
+                    {'text': 'Capital preservation and safety of principal', 'score': 2, 'type': 'conservative'},
+                    {'text': 'Steady growth with minimal volatility', 'score': 4, 'type': 'moderate'},
+                    {'text': 'Balanced growth with some risk for better returns', 'score': 6, 'type': 'balanced'},
+                    {'text': 'Maximum growth potential, accepting higher volatility', 'score': 8, 'type': 'aggressive'}
+                ]
+            },
+            {
+                'id': 3,
+                'question': '⏰ What is your preferred investment time horizon?',
+                'options': [
+                    {'text': 'Short-term (1-2 years) for specific goals', 'score': 2, 'type': 'short_term'},
+                    {'text': 'Medium-term (3-5 years) for planned expenses', 'score': 4, 'type': 'medium_term'},
+                    {'text': 'Long-term (5-10 years) for wealth building', 'score': 6, 'type': 'long_term'},
+                    {'text': 'Very long-term (10+ years) for retirement', 'score': 8, 'type': 'retirement'}
+                ]
+            },
+            {
+                'id': 4,
+                'question': '🎯 How much volatility can you tolerate in your portfolio?',
+                'options': [
+                    {'text': 'Minimal - I prefer stable, predictable returns', 'score': 1, 'type': 'low_volatility'},
+                    {'text': 'Low - Small fluctuations are acceptable', 'score': 3, 'type': 'moderate_volatility'},
+                    {'text': 'Moderate - I can handle typical market swings', 'score': 5, 'type': 'medium_volatility'},
+                    {'text': 'High - I can withstand significant ups and downs', 'score': 7, 'type': 'high_volatility'}
+                ]
+            },
+            {
+                'id': 5,
+                'question': '📊 How experienced are you with investing?',
+                'options': [
+                    {'text': 'Beginner - Just starting to learn about investing', 'score': 2, 'type': 'novice'},
+                    {'text': 'Some experience - Have made a few investments', 'score': 4, 'type': 'intermediate'},
+                    {'text': 'Experienced - Regular investor with good knowledge', 'score': 6, 'type': 'experienced'},
+                    {'text': 'Expert - Extensive experience and advanced knowledge', 'score': 8, 'type': 'expert'}
+                ]
+            },
+            {
+                'id': 6,
+                'question': '💸 What percentage of your income are you comfortable investing?',
+                'options': [
+                    {'text': 'Less than 10% - Prefer to keep most cash available', 'score': 2, 'type': 'low_investment'},
+                    {'text': '10-20% - Regular savings with some investment', 'score': 4, 'type': 'moderate_investment'},
+                    {'text': '20-30% - Significant portion for wealth building', 'score': 6, 'type': 'high_investment'},
+                    {'text': 'Over 30% - Maximum allocation for growth', 'score': 8, 'type': 'aggressive_investment'}
+                ]
+            },
+            {
+                'id': 7,
+                'question': '🛡️ How important is having an emergency fund to you?',
+                'options': [
+                    {'text': 'Extremely important - 6+ months of expenses', 'score': 2, 'type': 'conservative_safety'},
+                    {'text': 'Very important - 3-6 months of expenses', 'score': 4, 'type': 'moderate_safety'},
+                    {'text': 'Somewhat important - 1-3 months of expenses', 'score': 6, 'type': 'balanced_safety'},
+                    {'text': 'Minimal - Prefer to invest most available funds', 'score': 8, 'type': 'aggressive_safety'}
+                ]
+            },
+            {
+                'id': 8,
+                'question': '🎲 How do you approach financial decisions?',
+                'options': [
+                    {'text': 'Very cautious - Extensive research before any decision', 'score': 2, 'type': 'cautious'},
+                    {'text': 'Careful - Research and consult before deciding', 'score': 4, 'type': 'deliberate'},
+                    {'text': 'Balanced - Research but willing to take calculated risks', 'score': 6, 'type': 'calculated'},
+                    {'text': 'Opportunistic - Quick to act on good opportunities', 'score': 8, 'type': 'opportunistic'}
+                ]
+            }
+        ]
+    
+    def calculate_personality(self, answers):
+        """Calculate investment personality based on quiz answers"""
+        total_score = sum(answers.values())
+        max_score = len(self.questions) * 8  # 8 is max score per question
+        
+        score_percentage = (total_score / max_score) * 100
+        
+        if score_percentage <= 30:
+            personality = "Conservative Defender"
+            risk_level = "Low"
+            description = "You prioritize capital preservation and prefer stable, low-risk investments. Safety is your top concern."
+        elif score_percentage <= 50:
+            personality = "Cautious Planner"
+            risk_level = "Low to Moderate"
+            description = "You prefer steady growth with minimal risk, balancing safety with some growth opportunities."
+        elif score_percentage <= 70:
+            personality = "Balanced Grower"
+            risk_level = "Moderate"
+            description = "You seek balanced growth through diversified investments, accepting moderate risk for better returns."
+        else:
+            personality = "Aggressive Builder"
+            risk_level = "High"
+            description = "You're comfortable with significant risk and volatility in pursuit of maximum growth potential."
+        
+        return {
+            'personality': personality,
+            'risk_level': risk_level,
+            'score': total_score,
+            'score_percentage': score_percentage,
+            'description': description
+        }
+    
+    def get_recommendations(self, personality_result):
+        """Get personalized investment recommendations based on personality"""
+        personality = personality_result['personality']
+        
+        if "Conservative" in personality:
+            return {
+                'asset_allocation': {
+                    'Debt Funds & FDs': '60-70%',
+                    'Large Cap Equity': '20-25%',
+                    'Gold': '5-10%',
+                    'Cash': '5%'
+                },
+                'recommended_funds': [
+                    'ICICI Prudential Corporate Bond Fund',
+                    'HDFC Short Term Debt Fund',
+                    'SBI Magnum Gilt Fund',
+                    'Axis Bluechip Fund'
+                ],
+                'strategy': 'Focus on capital preservation with stable returns. Ideal for short-term goals and low-risk tolerance.',
+                'suggestions': [
+                    'Build a strong emergency fund (6+ months)',
+                    'Prioritize debt instruments and fixed deposits',
+                    'Consider tax-saving fixed deposits',
+                    'Start with small SIPs in large cap funds'
+                ]
+            }
+        elif "Cautious" in personality:
+            return {
+                'asset_allocation': {
+                    'Debt Funds': '50-60%',
+                    'Large Cap Equity': '30-35%',
+                    'Gold': '5%',
+                    'Mid Cap Equity': '5-10%'
+                },
+                'recommended_funds': [
+                    'Mirae Asset Large Cap Fund',
+                    'Kotak Corporate Bond Fund',
+                    'Axis Midcap Fund',
+                    'SBI Gold Fund'
+                ],
+                'strategy': 'Balanced approach with focus on steady growth while managing risk effectively.',
+                'suggestions': [
+                    'Maintain 4-6 months emergency fund',
+                    'Systematic Investment Plans (SIPs) in diversified funds',
+                    'Consider balanced advantage funds',
+                    'Regular portfolio reviews'
+                ]
+            }
+        elif "Balanced" in personality:
+            return {
+                'asset_allocation': {
+                    'Equity Funds': '60-70%',
+                    'Debt Funds': '20-25%',
+                    'Gold': '5%',
+                    'International Funds': '5-10%'
+                },
+                'recommended_funds': [
+                    'Parag Parikh Flexi Cap Fund',
+                    'ICICI Prudential Bluechip Fund',
+                    'Kotak Emerging Equity Fund',
+                    'Motilal Oswal NASDAQ 100 ETF'
+                ],
+                'strategy': 'Growth-oriented approach with diversified portfolio across market caps and asset classes.',
+                'suggestions': [
+                    '3-4 months emergency fund sufficient',
+                    'Aggressive SIPs for long-term goals',
+                    'Consider sectoral funds for diversification',
+                    'Regular rebalancing of portfolio'
+                ]
+            }
+        else:  # Aggressive
+            return {
+                'asset_allocation': {
+                    'Equity Funds': '75-85%',
+                    'Debt Funds': '10-15%',
+                    'Small Cap Funds': '5-10%',
+                    'International Funds': '5%'
+                },
+                'recommended_funds': [
+                    'SBI Small Cap Fund',
+                    'Axis Small Cap Fund',
+                    'Mirae Asset Emerging Bluechip Fund',
+                    'PGIM India Midcap Opportunities Fund'
+                ],
+                'strategy': 'Maximum growth focus with high equity exposure, suitable for long-term wealth creation.',
+                'suggestions': [
+                    '2-3 months emergency fund adequate',
+                    'Direct equity investments can be considered',
+                    'Sector rotation strategies',
+                    'Systematic Transfer Plans for lump sum investments'
+                ]
+            }
 
 # --- Enhanced ML Financial Predictor Class ---
 class MLFinancialPredictor:
@@ -195,1373 +507,249 @@ class MLFinancialPredictor:
             return "Balanced", 0.5, risk_score, "Moderate risk with balanced growth approach across equity and debt"
         else:
             return "Aggressive", 0.7, risk_score, "High risk tolerance suitable for equity-heavy portfolios for maximum returns"
-    
-    def predict_goal_success_probability(self, goal, user_finances):
-        """Enhanced ML goal prediction with multiple features"""
-        monthly_savings = user_finances.get('monthly_savings', 0)
-        goal_amount = goal['amount']
-        timeline = goal['years']
-        expected_return = goal.get('return', 8)
-        user_age = user_finances.get('age', 30)
-        current_savings = user_finances.get('current_savings', 0)
-        
-        required_monthly = goal_amount / (timeline * 12)
-        savings_ratio = monthly_savings / required_monthly if required_monthly > 0 else 0
-        
-        # Enhanced probability calculation with multiple factors
-        base_probability = min(savings_ratio * 0.7, 0.95)
-        timeline_factor = min(timeline / 10, 1.0) * 0.15
-        return_factor = min(expected_return / 12, 1.0) * 0.10
-        age_factor = (1 - min(user_age, 65) / 65) * 0.05
-        
-        # Current savings impact
-        savings_support = min(current_savings / goal_amount, 1.0) * 0.10
-        
-        final_probability = base_probability + timeline_factor + return_factor + age_factor + savings_support
-        final_probability = min(final_probability, 0.98)  # Cap at 98%
-        
-        # ML confidence intervals
-        if final_probability >= 0.8:
-            confidence = "🎯 High confidence - You're on track to achieve this goal!"
-        elif final_probability >= 0.6:
-            confidence = "✅ Moderate confidence - Minor adjustments may be needed"
-        elif final_probability >= 0.4:
-            confidence = "⚠️ Low confidence - Consider increasing savings or extending timeline"
-        else:
-            confidence = "🚨 Very low confidence - Goal may be unrealistic with current approach"
-            
-        return final_probability, confidence
-    
-    def get_spending_insights(self, expenses, monthly_income):
-        """ML-powered spending pattern analysis"""
-        insights = []
-        total_expenses = sum(expenses.values())
-        
-        # Analyze spending categories
-        category_analysis = {}
-        for category, amount in expenses.items():
-            ratio = (amount / monthly_income) * 100 if monthly_income > 0 else 0
-            category_analysis[category] = ratio
-            
-            # ML pattern detection
-            if category in ['Dining & Entertainment', 'Shopping'] and ratio > 15:
-                savings_potential = amount * 0.2
-                insights.append(f"🍽️ High spending on {category} ({ratio:.1f}% of income). Potential savings: ₹{savings_potential:,.0f}/month")
-            elif category == 'Rent/EMI' and ratio > 35:
-                insights.append(f"🏠 Housing cost ({ratio:.1f}% of income) exceeds recommended 30% threshold")
-            elif category == 'Transportation' and ratio > 15:
-                insights.append(f"🚗 Transportation costs ({ratio:.1f}% of income) are high. Consider carpooling or public transport")
-        
-        # Savings rate analysis
-        savings_rate = ((monthly_income - total_expenses) / monthly_income) * 100
-        if savings_rate < 10:
-            insights.append(f"💰 Low savings rate ({savings_rate:.1f}%). Target 20% for better financial health")
-        elif savings_rate > 30:
-            insights.append(f"💎 Excellent savings rate ({savings_rate:.1f}%)! Consider increasing investments")
-        
-        # Emergency fund check
-        if monthly_income > 0:
-            emergency_months = (current_savings := expenses.get('current_savings', 0)) / total_expenses if total_expenses > 0 else 0
-            if emergency_months < 3:
-                insights.append(f"🛡️ Boost emergency fund (currently {emergency_months:.1f} months). Target: 6 months")
-        
-        return insights, category_analysis
-    
-    def predict_optimal_allocation(self, risk_profile, user_data):
-        """ML-based optimal portfolio allocation"""
-        base_allocations = {
-            'Conservative': {'Equity': 30, 'Debt': 60, 'Gold': 5, 'Cash': 5},
-            'Balanced': {'Equity': 50, 'Debt': 40, 'Gold': 5, 'Cash': 5},
-            'Aggressive': {'Equity': 70, 'Debt': 20, 'Gold': 5, 'Cash': 5}
-        }
-        
-        # Adjust based on user profile
-        allocation = base_allocations.get(risk_profile, base_allocations['Balanced']).copy()
-        
-        # ML adjustments based on age
-        age = user_data.get('age', 30)
-        if age > 50:
-            allocation['Equity'] -= 10
-            allocation['Debt'] += 10
-        elif age < 35:
-            allocation['Equity'] += 5
-            allocation['Debt'] -= 5
-            
-        # Adjust based on investment experience
-        experience = user_data.get('investment_experience', 2)
-        if experience <= 2:
-            allocation['Equity'] -= 5
-            allocation['Debt'] += 5
-        elif experience >= 4:
-            allocation['Equity'] += 3
-            allocation['Debt'] -= 3
-            
-        return allocation
-    
-    def detect_financial_anomalies(self, user_data, metrics):
-        """ML anomaly detection in financial behavior"""
-        anomalies = []
-        monthly_income = user_data.get('monthly_income', 0)
-        expenses = user_data.get('expenses', {})
-        
-        # High debt-to-income anomaly
-        if metrics.get('dti_ratio', 0) > 40:
-            anomalies.append("📉 High debt burden - Debt-to-income ratio exceeds 40% (recommended: <35%)")
-        
-        # Low emergency fund anomaly
-        if metrics.get('emergency_fund_coverage', 0) < 2:
-            anomalies.append("🛡️ Insufficient emergency fund - Less than 2 months coverage (recommended: 6 months)")
-        
-        # Extreme spending anomaly
-        total_expenses = sum(expenses.values())
-        if any(amount > total_expenses * 0.4 for amount in expenses.values()):
-            anomalies.append("💸 Concentrated spending - Single category exceeds 40% of total expenses")
-        
-        # Income-expense mismatch
-        if total_expenses > monthly_income * 0.9:
-            anomalies.append("⚖️ Income-expense mismatch - Expenses exceed 90% of income")
-        
-        # Low investment rate
-        investment_pct = user_data.get('investment_percentage', 0)
-        if investment_pct < 10:
-            anomalies.append("📊 Low investment rate - Less than 10% of income being invested")
-        
-        return anomalies
 
-# --- Enhanced Stock Predictor with Technical Analysis ---
-class StockPredictor:
-    def __init__(self):
-        self.technical_indicators = {}
-    
-    def get_simulated_stock_data(self, symbol, periods=180):
-        """Generate enhanced simulated stock data with ML patterns"""
-        np.random.seed(hash(symbol) % 1000)
-        
-        dates = pd.date_range(end=datetime.now(), periods=periods, freq='D')
-        base_price = {
-            'RELIANCE.NS': 2500, 'TCS.NS': 3500, 'INFY.NS': 1600,
-            'HDFCBANK.NS': 1500, 'ICICIBANK.NS': 900, 'AAPL': 150,
-            'GOOGL': 120, 'MSFT': 300, 'SBIN.NS': 600, 'AXISBANK.NS': 1000
-        }.get(symbol, 1000)
-        
-        # Simulate trends and volatility based on stock type
-        if symbol.endswith('.NS'):
-            trend = np.random.normal(0.0008, 0.0002)  # Indian stocks
-        else:
-            trend = np.random.normal(0.001, 0.0003)   # US stocks
-            
-        volatility = np.random.uniform(0.015, 0.03)
-        
-        returns = np.random.normal(trend, volatility, len(dates))
-        prices = base_price * (1 + returns).cumprod()
-        
-        # Add some ML-detectable patterns
-        if len(prices) > 50:
-            # Simulate momentum for last month
-            momentum_trend = np.random.choice([-0.02, 0, 0.02, 0.05])
-            prices[-20:] = prices[-20:] * (1 + momentum_trend)
-        
-        data = pd.DataFrame({
-            'Close': prices,
-            'High': prices * (1 + np.random.uniform(0.01, 0.03)),
-            'Low': prices * (1 - np.random.uniform(0.01, 0.03)),
-            'Open': prices * (1 + np.random.uniform(-0.01, 0.01)),
-            'Volume': np.random.randint(1000000, 5000000, len(dates))
-        }, index=dates)
-        
-        return data
-    
-    def calculate_technical_indicators(self, data):
-        """Calculate ML technical indicators"""
-        # Moving averages
-        data['SMA_20'] = data['Close'].rolling(window=20).mean()
-        data['SMA_50'] = data['Close'].rolling(window=50).mean()
-        data['EMA_12'] = data['Close'].ewm(span=12).mean()
-        data['EMA_26'] = data['Close'].ewm(span=26).mean()
-        
-        # RSI
-        delta = data['Close'].diff()
-        gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
-        loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
-        rs = gain / loss
-        data['RSI'] = 100 - (100 / (1 + rs))
-        
-        # MACD
-        data['MACD'] = data['EMA_12'] - data['EMA_26']
-        data['MACD_Signal'] = data['MACD'].ewm(span=9).mean()
-        data['MACD_Histogram'] = data['MACD'] - data['MACD_Signal']
-        
-        # Bollinger Bands
-        data['BB_Middle'] = data['Close'].rolling(window=20).mean()
-        bb_std = data['Close'].rolling(window=20).std()
-        data['BB_Upper'] = data['BB_Middle'] + (bb_std * 2)
-        data['BB_Lower'] = data['BB_Middle'] - (bb_std * 2)
-        
-        # Volume analysis
-        data['Volume_SMA'] = data['Volume'].rolling(window=20).mean()
-        
-        return data
-    
-    def predict_stock_trend(self, symbol):
-        """Enhanced ML-based trend prediction with technical analysis"""
-        try:
-            data = self.get_simulated_stock_data(symbol, 200)
-            if data is None or data.empty:
-                return "No data", 0, 0, {}
-            
-            data = self.calculate_technical_indicators(data)
-            
-            current_price = data['Close'].iloc[-1]
-            current_rsi = data['RSI'].iloc[-1]
-            macd_histogram = data['MACD_Histogram'].iloc[-1]
-            price_vs_sma20 = (current_price / data['SMA_20'].iloc[-1] - 1) * 100
-            
-            # ML trend analysis with multiple indicators
-            bullish_signals = 0
-            bearish_signals = 0
-            neutral_signals = 0
-            
-            # Price vs Moving Averages (weight: 2)
-            if current_price > data['SMA_20'].iloc[-1] > data['SMA_50'].iloc[-1]:
-                bullish_signals += 2
-            elif current_price < data['SMA_20'].iloc[-1] < data['SMA_50'].iloc[-1]:
-                bearish_signals += 2
-            else:
-                neutral_signals += 1
-            
-            # RSI analysis (weight: 1)
-            if current_rsi < 30:
-                bullish_signals += 1  # Oversold
-            elif current_rsi > 70:
-                bearish_signals += 1  # Overbought
-            else:
-                neutral_signals += 1
-            
-            # MACD analysis (weight: 1)
-            if macd_histogram > 0:
-                bullish_signals += 1
-            else:
-                bearish_signals += 1
-            
-            # Price momentum (weight: 1)
-            if price_vs_sma20 > 2:
-                bullish_signals += 1
-            elif price_vs_sma20 < -2:
-                bearish_signals += 1
-            else:
-                neutral_signals += 1
-            
-            # Determine trend with confidence
-            total_signals = bullish_signals + bearish_signals + neutral_signals
-            if total_signals > 0:
-                bullish_ratio = bullish_signals / total_signals
-                bearish_ratio = bearish_signals / total_signals
-                
-                if bullish_ratio > 0.6:
-                    trend = "Strong Bullish 📈"
-                    confidence = min(0.85 + bullish_ratio * 0.1, 0.95)
-                elif bullish_ratio > 0.4:
-                    trend = "Bullish 📈"
-                    confidence = 0.70 + bullish_ratio * 0.1
-                elif bearish_ratio > 0.6:
-                    trend = "Strong Bearish 📉"
-                    confidence = min(0.80 + bearish_ratio * 0.1, 0.90)
-                elif bearish_ratio > 0.4:
-                    trend = "Bearish 📉"
-                    confidence = 0.65 + bearish_ratio * 0.1
-                else:
-                    trend = "Neutral ➡️"
-                    confidence = 0.55 + neutral_signals / total_signals * 0.1
-            else:
-                trend = "Insufficient Data"
-                confidence = 0.0
-            
-            technical_summary = {
-                'RSI': f"{current_rsi:.1f}",
-                'MACD_Histogram': f"{macd_histogram:.3f}",
-                'Price_vs_SMA20': f"{price_vs_sma20:+.1f}%",
-                'Bullish_Signals': bullish_signals,
-                'Bearish_Signals': bearish_signals,
-                'Neutral_Signals': neutral_signals
-            }
-            
-            return trend, confidence, current_price, technical_summary
-            
-        except Exception as e:
-            return "Error in analysis", 0, 0, {}
+# Continue with the rest of the existing classes and code...
 
-# --- Enhanced Financial Analyzer ---
-class FinancialAnalyzer:
-    def __init__(self, user_data):
-        self.user_data = user_data or {}
-        self.ml_predictor = MLFinancialPredictor()
-        self.stock_predictor = StockPredictor()
-        
-    def calculate_financial_metrics(self):
-        monthly_income = float(self.user_data.get('monthly_income', 0) or 0)
-        expenses = {k: float(v or 0) for k, v in self.user_data.get('expenses', {}).items()}
-        investment_pct = float(self.user_data.get('investment_percentage', 0) or 0)
-        current_savings = float(self.user_data.get('current_savings', 0) or 0)
-        
-        total_expenses = sum(expenses.values())
-        monthly_savings = monthly_income - total_expenses
-        desired_investment = monthly_income * (investment_pct / 100)
-        savings_rate = (monthly_savings / monthly_income) * 100 if monthly_income > 0 else 0
-        expense_ratios = {c: (a / monthly_income) * 100 if monthly_income > 0 else 0 for c, a in expenses.items()}
-        
-        return {
-            'total_expenses': total_expenses,
-            'monthly_savings': monthly_savings,
-            'desired_investment': desired_investment,
-            'savings_rate': savings_rate,
-            'expense_ratios': expense_ratios,
-            'monthly_income': monthly_income,
-            'current_savings': current_savings
-        }
-    
-    def calculate_advanced_metrics(self, metrics):
-        expenses = self.user_data.get('expenses', {})
-        debt_payments = expenses.get('Rent/EMI', 0) + expenses.get('Other Loans', 0)
-        monthly_income = metrics['monthly_income']
-        
-        dti_ratio = (debt_payments / monthly_income) * 100 if monthly_income > 0 else 0
-        emergency_fund_coverage = (self.user_data.get('current_savings', 0) / metrics['total_expenses']) if metrics['total_expenses'] > 0 else 0
-        annual_expenses = metrics['total_expenses'] * 12
-        fire_number = annual_expenses * 25  # Financial Independence number
-        
-        total_assets = sum(self.user_data.get('assets', {}).values())
-        total_liabilities = sum(self.user_data.get('liabilities', {}).values())
-        net_worth = total_assets - total_liabilities
-        
-        # Enhanced ML predictions
-        risk_profile, risk_allocation, ml_risk_score, risk_explanation = self.ml_predictor.predict_risk_tolerance(self.user_data)
-        spending_insights, category_analysis = self.ml_predictor.get_spending_insights(
-            self.user_data.get('expenses', {}), monthly_income
-        )
-        optimal_allocation = self.ml_predictor.predict_optimal_allocation(risk_profile, self.user_data)
-        anomalies = self.ml_predictor.detect_financial_anomalies(self.user_data, {
-            'dti_ratio': dti_ratio,
-            'emergency_fund_coverage': emergency_fund_coverage,
-            'monthly_income': monthly_income
-        })
-        
-        # Calculate financial health score
-        health_score = self.calculate_health_score(metrics, dti_ratio, emergency_fund_coverage, ml_risk_score)
-        
-        return {
-            'dti_ratio': dti_ratio,
-            'emergency_fund_target': metrics['total_expenses'] * 6,
-            'emergency_fund_coverage': emergency_fund_coverage,
-            'fire_number': fire_number,
-            'total_assets': total_assets,
-            'total_liabilities': total_liabilities,
-            'net_worth': net_worth,
-            'ml_risk_profile': risk_profile,
-            'ml_risk_score': ml_risk_score,
-            'risk_explanation': risk_explanation,
-            'spending_insights': spending_insights,
-            'category_analysis': category_analysis,
-            'optimal_allocation': optimal_allocation,
-            'anomalies': anomalies,
-            'risk_factors': self.ml_predictor.risk_factors,
-            'health_score': health_score
-        }
-    
-    def calculate_health_score(self, metrics, dti_ratio, emergency_coverage, risk_score):
-        """Calculate comprehensive financial health score"""
-        score = 0
-        
-        # Savings rate (max 30 points)
-        savings_rate = metrics['savings_rate']
-        if savings_rate >= 20:
-            score += 30
-        elif savings_rate >= 15:
-            score += 25
-        elif savings_rate >= 10:
-            score += 20
-        elif savings_rate >= 5:
-            score += 15
-        else:
-            score += 10
-        
-        # Debt-to-Income (max 25 points)
-        if dti_ratio <= 20:
-            score += 25
-        elif dti_ratio <= 35:
-            score += 20
-        elif dti_ratio <= 50:
-            score += 15
-        else:
-            score += 10
-        
-        # Emergency fund (max 25 points)
-        if emergency_coverage >= 6:
-            score += 25
-        elif emergency_coverage >= 4:
-            score += 20
-        elif emergency_coverage >= 2:
-            score += 15
-        else:
-            score += 10
-        
-        # Risk management (max 20 points)
-        if 4 <= risk_score <= 7:
-            score += 20  # Balanced risk is healthiest
-        elif risk_score < 4 or risk_score > 7:
-            score += 15
-        
-        return min(score, 100)
-
-# --- Data Persistence ---
-DATA_DIR = '.ai_financial_data'
-os.makedirs(DATA_DIR, exist_ok=True)
-SNAPSHOT_FILE = os.path.join(DATA_DIR, 'user_snapshot.json')
-GOALS_FILE = os.path.join(DATA_DIR, 'user_goals.json')
-PORTFOLIO_FILE = os.path.join(DATA_DIR, 'user_portfolio.json')
-
-def load_json(path, default):
-    try:
-        if os.path.exists(path):
-            with open(path, 'r') as f:
-                return json.load(f)
-    except Exception:
-        pass
-    return default
-
-def save_json(path, data):
-    with open(path, 'w') as f:
-        json.dump(data, f, indent=2)
-
-def format_currency(amount):
-    """Format currency with Indian numbering system"""
-    return f"₹{amount:,.0f}"
-
-# --- Investment Calculators ---
-def investment_projection_calculator(monthly_investment, years, expected_return):
-    monthly_rate = expected_return / 100 / 12
-    months = int(years * 12)
-    if monthly_rate > 0:
-        future_value = monthly_investment * (((1 + monthly_rate) ** months - 1) / monthly_rate)
-    else:
-        future_value = monthly_investment * months
-    total_invested = monthly_investment * months
-    profit = future_value - total_invested
-    return future_value, total_invested, profit
-
-def lumpsum_projection_calculator(investment, years, expected_return):
-    future_value = investment * ((1 + expected_return/100) ** years)
-    profit = future_value - investment
-    return future_value, profit
-
-# --- Initialize Session State ---
-if 'user_data' not in st.session_state:
-    st.session_state.user_data = load_json(SNAPSHOT_FILE, {})
-if 'goals' not in st.session_state:
-    st.session_state.goals = load_json(GOALS_FILE, [])
-if 'portfolio' not in st.session_state:
-    st.session_state.portfolio = load_json(PORTFOLIO_FILE, [])
-if 'current_page' not in st.session_state:
-    st.session_state.current_page = "📊 Snapshot"
-
-# --- Mutual Fund Data ---
-@st.cache_data
-def get_mutual_fund_data():
-    data = {
-        'Category': ['Large Cap', 'Large Cap', 'Mid Cap', 'Mid Cap', 'Small Cap', 'Small Cap', 
-                    'Flexi Cap', 'Flexi Cap', 'ELSS', 'ELSS', 'Debt', 'Debt'],
-        'Fund Name': ['Axis Bluechip Fund', 'Mirae Asset Large Cap', 'Axis Midcap Fund', 
-                     'Kotak Emerging Equity', 'Axis Small Cap Fund', 'SBI Small Cap Fund',
-                     'Parag Parikh Flexi Cap', 'PGIM India Flexi Cap', 'Mirae Asset Tax Saver',
-                     'Canara Robeco Equity Tax Saver', 'ICICI Prudential Corporate Bond',
-                     'HDFC Short Term Debt'],
-        '1Y Return': [15.2, 16.1, 25.6, 27.2, 35.8, 38.2, 22.1, 24.5, 20.3, 21.1, 7.1, 6.8],
-        '3Y CAGR': [14.5, 15.2, 22.1, 23.5, 28.9, 30.1, 19.8, 21.2, 18.5, 19.2, 6.5, 6.2],
-        '5Y CAGR': [16.1, 17.2, 20.5, 21.8, 25.4, 26.8, 18.9, 20.1, 17.2, 18.1, 7.5, 7.2],
-        'Risk': ['Moderate', 'Moderate', 'High', 'High', 'Very High', 'Very High', 
-                'High', 'High', 'High', 'High', 'Low', 'Low'],
-        'Rating': [5, 5, 5, 4, 5, 4, 5, 4, 5, 4, 4, 3]
-    }
-    return pd.DataFrame(data)
-
-# --- Main App Header ---
-st.title('🤖 AI Financial Advisor')
-st.markdown("""
-<div style='text-align: center; padding: 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-            border-radius: 12px; color: white; margin-bottom: 1rem;'>
-    <h3 style='color: white; margin: 0;'>Advanced ML-Powered Financial Planning</h3>
-    <p style='margin: 0.5rem 0 0 0; opacity: 0.9;'>Smart Analytics • ML Predictions • Data-Driven Insights</p>
-</div>
-""", unsafe_allow_html=True)
-
-# --- Navigation ---
+# Update navigation to include Quiz
 nav_options = [
     "📊 Snapshot", "📈 Dashboard", "🤖 ML Insights", 
-    "💹 Investment Center", "🎯 Goals Planner", "💼 Portfolio",
-    "📥 Export", "👨‍💻 Developer"
+    "🧠 Behavior Quiz", "💹 Investment Center", "🎯 Goals Planner", 
+    "💼 Portfolio", "📥 Export", "👨‍💻 Developer"
 ]
 
-# Create navigation columns
-cols = st.columns(len(nav_options))
-for i, option in enumerate(nav_options):
-    with cols[i]:
-        if st.button(option, key=f"nav_{i}", use_container_width=True):
-            st.session_state.current_page = option
-
-# --- Snapshot Page ---
-if st.session_state.current_page == "📊 Snapshot":
-    st.header('📊 Financial Snapshot')
-    st.markdown("Complete your financial profile to get personalized AI-powered insights.")
+# Add the Quiz Page
+elif st.session_state.current_page == "🧠 Behavior Quiz":
+    st.header('🧠 Financial Behavior Quiz')
+    st.markdown("""
+    <div class='financial-sticker'>
+        <h3>Discover Your Investment Personality</h3>
+        <p>This quiz will help us understand your financial behavior and provide personalized investment recommendations.</p>
+        <p><strong>Time:</strong> 5-7 minutes | <strong>Questions:</strong> 8</p>
+    </div>
+    """, unsafe_allow_html=True)
     
-    with st.form('snapshot_form'):
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.markdown("### 💰 Income & Profile")
-            monthly_income = st.number_input('Monthly Take-Home Income (₹)', min_value=0.0, 
-                                           value=float(st.session_state.user_data.get('monthly_income', 75000.0)), 
-                                           step=1000.0, key='monthly_income')
-            current_savings = st.number_input('Current Savings & Emergency Fund (₹)', min_value=0.0, 
-                                            value=float(st.session_state.user_data.get('current_savings', 100000.0)), 
-                                            step=5000.0, key='current_savings')
-            investment_percentage = st.slider('% of Income to Invest Monthly', 0, 100, 
-                                            int(st.session_state.user_data.get('investment_percentage', 20)), 
-                                            key='investment_percentage')
-            
-            st.markdown("### 🤖 ML Profile Data")
-            age = st.number_input('Your Age', min_value=18, max_value=80, 
-                                value=st.session_state.user_data.get('age', 30), key='age')
-            investment_experience = st.slider('Investment Experience Level (1-5)', 1, 5, 
-                                            st.session_state.user_data.get('investment_experience', 2),
-                                            help="1: Beginner, 3: Intermediate, 5: Expert", key='investment_experience')
-            
-        with col2:
-            st.markdown("### 💸 Monthly Expenses")
-            defaults = st.session_state.user_data.get('expenses', {})
-            rent_emi = st.number_input('🏠 Rent / Home Loan EMI (₹)', 0.0, 
-                                     value=float(defaults.get('Rent/EMI', 20000.0)), step=1000.0, key='rent_emi')
-            groceries = st.number_input('🛒 Groceries & Household (₹)', 0.0, 
-                                      value=float(defaults.get('Groceries', 8000.0)), step=500.0, key='groceries')
-            utilities = st.number_input('⚡ Utilities (Electricity, Water, Gas) (₹)', 0.0, 
-                                      value=float(defaults.get('Utilities', 3000.0)), step=200.0, key='utilities')
-            transportation = st.number_input('🚗 Transportation (Fuel, Maintenance) (₹)', 0.0, 
-                                           value=float(defaults.get('Transportation', 5000.0)), step=500.0, key='transportation')
-            dining_entertainment = st.number_input('🍽️ Dining & Entertainment (₹)', 0.0, 
-                                                 value=float(defaults.get('Dining & Entertainment', 6000.0)), step=500.0, key='dining')
-            miscellaneous = st.number_input('📦 Miscellaneous Expenses (₹)', 0.0, 
-                                          value=float(defaults.get('Miscellaneous', 3000.0)), step=200.0, key='miscellaneous')
-
-        # Assets & Liabilities
-        st.markdown("### 🏦 Assets & Liabilities")
-        col3, col4 = st.columns(2)
-        
-        with col3:
-            st.markdown("#### 💎 Assets")
-            assets_defaults = st.session_state.user_data.get('assets', {})
-            cash_balance = st.number_input('💵 Cash & Bank Balance (₹)', 0.0, 
-                                         value=float(assets_defaults.get('Cash', 50000.0)), step=5000.0, key='cash')
-            stocks_mf = st.number_input('📈 Stocks & Mutual Funds (₹)', 0.0, 
-                                      value=float(assets_defaults.get('Stocks/MF', 0.0)), step=10000.0, key='stocks')
-            property_value = st.number_input('🏠 Property Value (₹)', 0.0, 
-                                           value=float(assets_defaults.get('Property', 0.0)), step=50000.0, key='property')
-        
-        with col4:
-            st.markdown("#### 📄 Liabilities")
-            liab_defaults = st.session_state.user_data.get('liabilities', {})
-            home_loan = st.number_input('🏦 Home Loan Outstanding (₹)', 0.0, 
-                                      value=float(liab_defaults.get('Home Loan', 0.0)), step=10000.0, key='home_loan')
-            personal_loan = st.number_input('💳 Personal Loan Outstanding (₹)', 0.0, 
-                                          value=float(liab_defaults.get('Personal Loan', 0.0)), step=5000.0, key='personal_loan')
-            other_debt = st.number_input('📝 Other Debt (₹)', 0.0, 
-                                       value=float(liab_defaults.get('Other Debt', 0.0)), step=5000.0, key='other_debt')
-
-        if st.form_submit_button('💾 Save Financial Snapshot', use_container_width=True):
-            user_data = {
-                'monthly_income': monthly_income,
-                'current_savings': current_savings,
-                'investment_percentage': investment_percentage,
-                'age': age,
-                'investment_experience': investment_experience,
-                'expenses': {
-                    'Rent/EMI': rent_emi,
-                    'Groceries': groceries,
-                    'Utilities': utilities,
-                    'Transportation': transportation,
-                    'Dining & Entertainment': dining_entertainment,
-                    'Miscellaneous': miscellaneous
-                },
-                'assets': {
-                    'Cash': cash_balance,
-                    'Stocks/MF': stocks_mf,
-                    'Property': property_value
-                },
-                'liabilities': {
-                    'Home Loan': home_loan,
-                    'Personal Loan': personal_loan,
-                    'Other Debt': other_debt
-                }
-            }
-            st.session_state.user_data = user_data
-            save_json(SNAPSHOT_FILE, user_data)
-            st.success('✅ Financial Snapshot saved successfully!')
-            st.balloons()
-
-# --- Dashboard Page ---
-elif st.session_state.current_page == "📈 Dashboard":
-    st.header('📈 Financial Dashboard')
+    # Initialize quiz in session state
+    if 'quiz_answers' not in st.session_state:
+        st.session_state.quiz_answers = {}
+    if 'current_question' not in st.session_state:
+        st.session_state.current_question = 0
+    if 'quiz_completed' not in st.session_state:
+        st.session_state.quiz_completed = False
     
-    if not st.session_state.user_data:
-        st.warning("🚨 No financial snapshot found. Please create one in 'Snapshot' first!")
-        st.markdown("""
-        <div class='financial-sticker'>
-            <h3>Get Started with Your Financial Journey!</h3>
-            <p>Create your financial snapshot to unlock personalized insights and recommendations.</p>
+    quiz = FinancialBehaviorQuiz()
+    
+    if not st.session_state.quiz_completed:
+        # Show current question
+        current_q = quiz.questions[st.session_state.current_question]
+        
+        st.markdown(f"""
+        <div class='quiz-question'>
+            <h3>Question {st.session_state.current_question + 1} of {len(quiz.questions)}</h3>
+            <h4>{current_q['question']}</h4>
         </div>
         """, unsafe_allow_html=True)
-    else:
-        user_data = st.session_state.user_data
-        analyzer = FinancialAnalyzer(user_data)
-        metrics = analyzer.calculate_financial_metrics()
-        advanced = analyzer.calculate_advanced_metrics(metrics)
         
-        # Top Metrics Row
-        col1, col2, col3, col4 = st.columns(4)
-        with col1:
-            st.markdown(f"""
-            <div class='metric-card'>
-                <h4>💰 Monthly Income</h4>
-                <h2>{format_currency(metrics['monthly_income'])}</h2>
-                <p>Gross monthly earnings</p>
-            </div>
-            """, unsafe_allow_html=True)
-        with col2:
-            st.markdown(f"""
-            <div class='metric-card'>
-                <h4>📊 Savings Rate</h4>
-                <h2>{metrics['savings_rate']:.1f}%</h2>
-                <p>Of monthly income saved</p>
-            </div>
-            """, unsafe_allow_html=True)
-        with col3:
-            st.markdown(f"""
-            <div class='metric-card'>
-                <h4>🛡️ Health Score</h4>
-                <h2>{advanced['health_score']}/100</h2>
-                <p>Overall financial health</p>
-            </div>
-            """, unsafe_allow_html=True)
-        with col4:
-            st.markdown(f"""
-            <div class='metric-card'>
-                <h4>🏦 Net Worth</h4>
-                <h2>{format_currency(advanced['net_worth'])}</h2>
-                <p>Total assets minus liabilities</p>
-            </div>
-            """, unsafe_allow_html=True)
+        # Display options
+        selected_option = None
+        cols = st.columns(2)
         
-        # ML Insights Section
-        st.markdown("### 🤖 ML-Powered Insights")
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            # Risk Profile Card
-            st.markdown(f"""
-            <div class='metric-card'>
-                <h4>🎯 ML Risk Profile</h4>
-                <h3>{advanced['ml_risk_profile']}</h3>
-                <p>Score: {advanced['ml_risk_score']:.1f}/10</p>
-                <p><small>{advanced['risk_explanation']}</small></p>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            # Optimal Allocation
-            st.markdown("### 📊 Recommended Allocation")
-            allocation = advanced['optimal_allocation']
-            fig = px.pie(values=list(allocation.values()), names=list(allocation.keys()),
-                        title='ML-Optimized Portfolio Allocation')
-            fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                            font=dict(color='#000000'))
-            st.plotly_chart(fig, use_container_width=True)
-        
-        with col2:
-            # Spending Insights
-            st.markdown("### 💡 Smart Spending Insights")
-            for insight in advanced.get('spending_insights', [])[:4]:
-                st.markdown(f"<div class='ml-insight'>{insight}</div>", unsafe_allow_html=True)
-            
-            # Anomalies
-            if advanced['anomalies']:
-                st.markdown("### 🚨 ML Anomaly Detection")
-                for anomaly in advanced['anomalies']:
-                    st.error(anomaly)
-        
-        # Financial Health Gauge
-        st.markdown("### 📈 Financial Health Score")
-        col1, col2 = st.columns([1, 2])
-        
-        with col1:
-            fig = go.Figure(go.Indicator(
-                mode="gauge+number+delta",
-                value=advanced['health_score'],
-                domain={'x': [0, 1], 'y': [0, 1]},
-                title={'text': "Financial Health Score", 'font': {'color': 'black'}},
-                gauge={
-                    'axis': {'range': [None, 100], 'tickcolor': 'black'},
-                    'bar': {'color': "darkblue"},
-                    'steps': [
-                        {'range': [0, 40], 'color': "lightcoral"},
-                        {'range': [40, 70], 'color': "lightyellow"},
-                        {'range': [70, 100], 'color': "lightgreen"}
-                    ],
-                    'threshold': {
-                        'line': {'color': "red", 'width': 4},
-                        'thickness': 0.75,
-                        'value': 90
-                    }
-                }
-            ))
-            fig.update_layout(height=300, paper_bgcolor='rgba(0,0,0,0)', font={'color': 'black'})
-            st.plotly_chart(fig, use_container_width=True)
-
-        with col2:
-            # Key Metrics Breakdown
-            st.markdown("### 📊 Key Metrics")
-            metric_col1, metric_col2 = st.columns(2)
-            with metric_col1:
-                st.metric("Emergency Fund Coverage", 
-                         f"{advanced['emergency_fund_coverage']:.1f} months", 
-                         f"Target: 6 months")
-                st.metric("Debt-to-Income Ratio", 
-                         f"{advanced['dti_ratio']:.1f}%",
-                         delta="Recommended: <35%", 
-                         delta_color="inverse" if advanced['dti_ratio'] > 35 else "normal")
-            with metric_col2:
-                st.metric("Monthly Savings", 
-                         format_currency(metrics['monthly_savings']))
-                st.metric("FIRE Number", 
-                         format_currency(advanced['fire_number']),
-                         "Financial Independence Target")
-
-        # Expense Analysis
-        st.markdown("### 💸 Expense Analysis")
-        expense_data = {k: v for k, v in user_data['expenses'].items() if v > 0}
-        if expense_data:
-            col1, col2 = st.columns(2)
-            with col1:
-                fig = px.pie(values=list(expense_data.values()), 
-                           names=list(expense_data.keys()),
-                           title='Expense Distribution')
-                fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', 
-                                plot_bgcolor='rgba(0,0,0,0)',
-                                font={'color': 'black'})
-                st.plotly_chart(fig, use_container_width=True)
-            
-            with col2:
-                # Expense breakdown table
-                expense_df = pd.DataFrame({
-                    'Category': list(expense_data.keys()),
-                    'Amount': list(expense_data.values()),
-                    'Percentage': [(v/sum(expense_data.values()))*100 for v in expense_data.values()]
-                }).sort_values('Amount', ascending=False)
+        for i, option in enumerate(current_q['options']):
+            with cols[i % 2]:
+                is_selected = st.session_state.quiz_answers.get(current_q['id']) == i
+                css_class = "quiz-option selected" if is_selected else "quiz-option"
                 
-                st.dataframe(expense_df.style.format({
-                    'Amount': '₹{:,.0f}',
-                    'Percentage': '{:.1f}%'
-                }), use_container_width=True)
-
-        # Risk Factor Analysis
-        st.markdown("### 🔍 Risk Factor Analysis")
-        if advanced.get('risk_factors'):
-            risk_df = pd.DataFrame({
-                'Factor': list(advanced['risk_factors'].keys()),
-                'Impact Score': list(advanced['risk_factors'].values())
-            }).sort_values('Impact Score', ascending=False)
-            
-            fig = px.bar(risk_df, x='Factor', y='Impact Score', 
-                        title='ML Risk Factor Contributions',
-                        color='Impact Score')
-            fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', 
-                            plot_bgcolor='rgba(0,0,0,0)',
-                            font={'color': 'black'})
-            st.plotly_chart(fig, use_container_width=True)
-
-# --- ML Insights Page ---
-elif st.session_state.current_page == "🤖 ML Insights":
-    st.header('🤖 Advanced ML Insights')
-    
-    if not st.session_state.user_data:
-        st.warning("🚨 Please create a financial snapshot first to get ML insights!")
-    else:
-        user_data = st.session_state.user_data
-        analyzer = FinancialAnalyzer(user_data)
-        ml_predictor = MLFinancialPredictor()
-        stock_predictor = StockPredictor()
-        
-        # Enhanced Risk Analysis
-        st.markdown("### 🎯 Deep Risk Analysis")
-        risk_profile, risk_allocation, risk_score, risk_explanation = ml_predictor.predict_risk_tolerance(user_data)
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            st.markdown(f"""
-            <div class='metric-card'>
-                <h3>🤖 ML Risk Assessment</h3>
-                <div style='text-align: center;'>
-                    <h1 style='color: #7c3aed;'>{risk_profile}</h1>
-                    <p><strong>Risk Score:</strong> {risk_score:.1f}/10</p>
-                    <p>{risk_explanation}</p>
+                st.markdown(f"""
+                <div class='{css_class}' onclick='this.style.backgroundColor="#dbeafe"'>
+                    {option['text']}
                 </div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            # Risk Factors Breakdown
-            st.markdown("### 📊 Risk Factor Analysis")
-            for factor, score in ml_predictor.risk_factors.items():
-                st.progress(min(score/2, 1.0), text=f"{factor}: {score:.2f}")
-        
-        with col2:
-            # Stock Analysis
-            st.markdown("### 📈 ML Stock Analysis")
-            stock_symbols = ['RELIANCE.NS', 'TCS.NS', 'INFY.NS', 'HDFCBANK.NS', 'ICICIBANK.NS', 'AAPL', 'GOOGL', 'MSFT']
-            selected_stock = st.selectbox("Select Stock for ML Analysis", stock_symbols)
-            
-            if st.button("🤖 Run ML Analysis", use_container_width=True):
-                with st.spinner("Running advanced ML analysis..."):
-                    trend, confidence, price, technicals = stock_predictor.predict_stock_trend(selected_stock)
-                    
-                    st.markdown(f"""
-                    <div class='ai-prediction'>
-                        <h4>🤖 ML Prediction for {selected_stock}</h4>
-                        <div style='display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0;'>
-                            <div>
-                                <p><strong>Current Price:</strong></p>
-                                <h3>₹{price:.2f}</h3>
-                            </div>
-                            <div>
-                                <p><strong>Predicted Trend:</strong></p>
-                                <h3>{trend}</h3>
-                            </div>
-                            <div>
-                                <p><strong>ML Confidence:</strong></p>
-                                <h3>{confidence*100:.1f}%</h3>
-                            </div>
-                            <div>
-                                <p><strong>RSI:</strong></p>
-                                <h3>{technicals['RSI']}</h3>
-                            </div>
-                        </div>
-                        <p><strong>Technical Signals:</strong> {technicals['Bullish_Signals']} Bullish, {technicals['Bearish_Signals']} Bearish, {technicals['Neutral_Signals']} Neutral</p>
-                        <p><small>Disclaimer: ML predictions are for educational purposes. Past performance doesn't guarantee future results.</small></p>
-                    </div>
-                    """, unsafe_allow_html=True)
-        
-        # Goal Success Predictions
-        if st.session_state.goals:
-            st.markdown("### 🎯 ML Goal Success Probability")
-            for i, goal in enumerate(st.session_state.goals):
-                probability, confidence = ml_predictor.predict_goal_success_probability(goal, user_data)
+                """, unsafe_allow_html=True)
                 
-                col1, col2 = st.columns([4, 1])
-                with col1:
-                    st.markdown(f"""
-                    <div class='metric-card'>
-                        <h4>🎯 {goal['name']}</h4>
-                        <p>Target: {format_currency(goal['amount'])} in {goal['years']} years | Expected Return: {goal.get('return', 8)}%</p>
-                        <div style='background: #e2e8f0; border-radius: 10px; height: 25px; margin: 10px 0;'>
-                            <div style='background: {'#10b981' if probability >= 0.7 else '#f59e0b' if probability >= 0.5 else '#ef4444'}; 
-                                      width: {probability*100}%; height: 100%; border-radius: 10px; 
-                                      text-align: center; color: white; font-weight: bold; line-height: 25px;'>
-                                {probability*100:.1f}% Success Probability
-                            </div>
-                        </div>
-                        <p><strong>ML Assessment:</strong> {confidence}</p>
-                    </div>
-                    """, unsafe_allow_html=True)
-                
-                with col2:
-                    if probability >= 0.7:
-                        emoji = "🎉"
-                        color = "#10b981"
-                    elif probability >= 0.5:
-                        emoji = "👍"
-                        color = "#f59e0b"
-                    else:
-                        emoji = "⚠️"
-                        color = "#ef4444"
-                    
-                    st.markdown(f"""
-                    <div style='text-align: center; padding: 1rem; background: {color}; 
-                                border-radius: 12px; color: white; margin: 0.5rem 0; height: 100%; display: flex; align-items: center; justify-content: center;'>
-                        <div style='font-size: 2rem;'>{emoji}</div>
-                    </div>
-                    """, unsafe_allow_html=True)
-
-        # Advanced ML Features
-        st.markdown("### 🔬 Advanced ML Features")
+                if st.button(f"Select Option {i+1}", key=f"opt_{i}", use_container_width=True):
+                    st.session_state.quiz_answers[current_q['id']] = i
+                    st.rerun()
         
-        tab1, tab2, tab3 = st.tabs(["📈 Portfolio Optimization", "🔍 Pattern Detection", "🎯 Prediction Models"])
-        
-        with tab1:
-            st.markdown("#### ML Portfolio Optimization")
-            st.write("""
-            Our ML algorithm analyzes:
-            - Your risk tolerance and financial goals
-            - Market conditions and historical patterns
-            - Optimal asset allocation for maximum returns
-            - Risk-adjusted portfolio construction
-            """)
-            
-            # Show sample optimized portfolio
-            optimal_alloc = ml_predictor.predict_optimal_allocation(risk_profile, user_data)
-            st.write("**ML-Optimized Allocation:**")
-            for asset, pct in optimal_alloc.items():
-                st.write(f"- {asset}: {pct}%")
-        
-        with tab2:
-            st.markdown("#### Financial Pattern Detection")
-            st.write("""
-            ML algorithms detect:
-            - Spending patterns and anomalies
-            - Savings behavior trends
-            - Investment opportunity windows
-            - Risk pattern identification
-            - Goal achievement probabilities
-            """)
-            
-        with tab3:
-            st.markdown("#### Predictive Models")
-            st.write("""
-            Advanced ML models used:
-            - Random Forest for risk assessment
-            - Time Series Analysis for stock trends
-            - Neural Networks for pattern recognition
-            - Ensemble Methods for goal prediction
-            - Anomaly Detection for financial health
-            """)
-
-# --- Investment Center Page ---
-elif st.session_state.current_page == "💹 Investment Center":
-    st.header('💹 Investment Center')
-    st.markdown("""
-    <div class='financial-sticker'>
-        <h3>Smart Investing Made Simple</h3>
-        <p>Explore mutual funds, simulate growth, and plan your SIP investments with ML-powered insights.</p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    mf_df = get_mutual_fund_data()
-    
-    # Two main sections: Lump Sum and SIP
-    tab1, tab2, tab3 = st.tabs(["💰 Lump Sum Investment", "📅 SIP Calculator", "📊 Fund Comparison"])
-    
-    with tab1:
-        st.subheader("Lump Sum Investment Simulation")
-        col1, col2 = st.columns([1, 2])
+        # Navigation buttons
+        col1, col2, col3 = st.columns([1, 1, 1])
         
         with col1:
-            category = st.selectbox('Fund Category', mf_df['Category'].unique(), key='lumpsum_category')
-            funds_filtered = mf_df[mf_df['Category']==category]
-            fund_name = st.selectbox('Select Fund', funds_filtered['Fund Name'], key='lumpsum_fund')
-            invest_amt = st.number_input('Investment Amount (₹)', min_value=1000.0, value=50000.0, step=1000.0, key='lumpsum_amt')
-            years = st.slider('Investment Period (Years)', 1, 20, 5, key='lumpsum_years')
-            
-            selected_fund = mf_df[mf_df['Fund Name']==fund_name].iloc[0]
-            st.write(f"**Risk Level:** {selected_fund['Risk']}")
-            st.write(f"**⭐ Rating:** {'★' * int(selected_fund['Rating'])}")
-            
+            if st.session_state.current_question > 0:
+                if st.button("⬅️ Previous", use_container_width=True):
+                    st.session_state.current_question -= 1
+                    st.rerun()
+        
         with col2:
-            st.subheader(f"ML Projection for {format_currency(invest_amt)} in {fund_name}")
-            
-            # Calculate projections for different periods
-            periods = [1, 3, 5, 10]
-            returns = [selected_fund['1Y Return'], selected_fund['3Y CAGR'], selected_fund['5Y CAGR'], selected_fund['5Y CAGR']]
-            future_values = [lumpsum_projection_calculator(invest_amt, period, return_rate)[0] 
-                           for period, return_rate in zip(periods, returns)]
-            profits = [fv - invest_amt for fv in future_values]
-            
-            # Store for export
-            st.session_state.investment_simulation = {
-                'fund_name': fund_name, 
-                'amount': invest_amt,
-                'years': years,
-                'future_value': future_values[-1],
-                'profit': profits[-1],
-                'return_rate': selected_fund['5Y CAGR']
-            }
-            
-            # Visualization
-            fig = go.Figure()
-            fig.add_trace(go.Bar(name='Initial Investment', x=[str(p) + 'Y' for p in periods], 
-                                y=[invest_amt]*len(periods), marker_color='#94a3b8'))
-            fig.add_trace(go.Bar(name='Projected Profit', x=[str(p) + 'Y' for p in periods], 
-                                y=profits, marker_color='#10b981'))
-            fig.update_layout(barmode='stack', title='Investment Growth Projection', 
-                            showlegend=True, paper_bgcolor='rgba(0,0,0,0)',
-                            font={'color': 'black'})
-            st.plotly_chart(fig, use_container_width=True)
-            
-            # Detailed returns table
-            returns_df = pd.DataFrame({
-                'Period': [f'{p} Year{"s" if p>1 else ""}' for p in periods],
-                'Expected Return %': returns,
-                'Future Value': [format_currency(fv) for fv in future_values],
-                'Profit': [format_currency(p) for p in profits]
-            })
-            st.dataframe(returns_df, use_container_width=True)
-
-    with tab2:
-        st.subheader("SIP (Systematic Investment Plan) Calculator")
-        col1, col2 = st.columns(2)
+            progress = (st.session_state.current_question + 1) / len(quiz.questions)
+            st.progress(progress, text=f"Progress: {int(progress*100)}%")
         
-        with col1:
-            monthly_sip = st.number_input('Monthly SIP Amount (₹)', min_value=500.0, value=5000.0, step=500.0, key='sip_amt')
-            sip_years = st.slider('Investment Period (Years)', 1, 30, 10, key='sip_years')
-            expected_return = st.slider('Expected Annual Return (%)', 5, 25, 12, key='sip_return')
-            
-        with col2:
-            # Calculate SIP projection
-            future_value, total_invested, profit = investment_projection_calculator(monthly_sip, sip_years, expected_return)
-            
-            st.markdown(f"""
-            <div class='metric-card'>
-                <h3>📊 SIP Projection Results</h3>
-                <p><strong>Monthly SIP:</strong> {format_currency(monthly_sip)}</p>
-                <p><strong>Investment Period:</strong> {sip_years} years</p>
-                <p><strong>Total Invested:</strong> {format_currency(total_invested)}</p>
-                <p><strong>Future Value:</strong> {format_currency(future_value)}</p>
-                <p><strong>Estimated Profit:</strong> {format_currency(profit)}</p>
-                <p><strong>Return on Investment:</strong> {(profit/total_invested)*100:.1f}%</p>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            # Store SIP data for PDF export
-            st.session_state.sip_data = [{
-                'years': sip_years,
-                'monthly_sip': monthly_sip,
-                'total_invested': total_invested,
-                'future_value': future_value,
-                'profit': profit
-            }]
-
-        # SIP Growth Chart
-        st.markdown("### 📈 SIP Growth Over Time")
-        years_range = list(range(1, sip_years + 1))
-        growth_data = []
-        for year in years_range:
-            fv, invested, prof = investment_projection_calculator(monthly_sip, year, expected_return)
-            growth_data.append({'Year': year, 'Total Invested': invested, 'Future Value': fv})
-        
-        growth_df = pd.DataFrame(growth_data)
-        fig = px.line(growth_df, x='Year', y=['Total Invested', 'Future Value'], 
-                     title='SIP Growth Projection',
-                     labels={'value': 'Amount (₹)', 'variable': 'Metric'})
-        fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                         font={'color': 'black'})
-        st.plotly_chart(fig, use_container_width=True)
-
-    with tab3:
-        st.subheader('📊 Mutual Fund Comparison')
-        category_comparison = st.selectbox('Select Category to Compare', mf_df['Category'].unique(), key='compare_category')
-        compare_funds = mf_df[mf_df['Category']==category_comparison].head(5)
-        
-        # Comparison chart
-        fig = px.bar(compare_funds, x='Fund Name', y=['1Y Return', '3Y CAGR', '5Y CAGR'],
-                    title=f'Performance Comparison - {category_comparison} Funds',
-                    barmode='group')
-        fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                         font={'color': 'black'})
-        st.plotly_chart(fig, use_container_width=True)
-        
-        # Detailed comparison table
-        st.dataframe(compare_funds[['Fund Name', '1Y Return', '3Y CAGR', '5Y CAGR', 'Risk', 'Rating']].style.format({
-            '1Y Return': '{:.1f}%',
-            '3Y CAGR': '{:.1f}%',
-            '5Y CAGR': '{:.1f}%'
-        }), use_container_width=True)
-
-# --- Goals Planner Page ---
-elif st.session_state.current_page == "🎯 Goals Planner":
-    st.header('🎯 Goals & SIP Planner')
-    
-    # Privacy Notice
-    st.markdown("""
-    <div class='financial-sticker'>
-        <h3>🔒 Your Goals are Private!</h3>
-        <p>All your financial goals are stored locally and only visible to you.</p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    if 'goals' not in st.session_state:
-        st.session_state.goals = []
-
-    # Add Goal Form
-    with st.form('goal_add'):
-        st.markdown("### 🎯 Add New Financial Goal")
-        
-        goal_cols = st.columns([2, 1, 1])
-        with goal_cols[0]:
-            g_name = st.text_input('Goal Name', placeholder='e.g., Dream House, Car, Vacation, Education')
-        with goal_cols[1]:
-            g_amount = st.number_input('Target Amount (₹)', min_value=0.0, value=500000.0, step=1000.0)
-        with goal_cols[2]:
-            g_years = st.number_input('Years to Achieve', min_value=1, value=5)
-        
-        g_return = st.slider('Expected Annual Return (%)', 0, 20, 8, 
-                           help='Conservative: 6-8%, Moderate: 8-12%, Aggressive: 12-15%+')
-        
-        add = st.form_submit_button('🚀 Add Goal', use_container_width=True)
-        
-    if add and g_name:
-        new_goal = {
-            'name': g_name,
-            'amount': g_amount,
-            'years': g_years,
-            'return': g_return,
-            'created_date': datetime.now().strftime('%Y-%m-%d')
-        }
-        st.session_state.goals.append(new_goal)
-        save_json(GOALS_FILE, st.session_state.goals)
-        st.success(f'🎯 Goal "{g_name}" added successfully!')
-        st.balloons()
-
-    if st.session_state.goals:
-        # Goals Overview
-        total_goals_value = sum(g['amount'] for g in st.session_state.goals)
-        avg_years = np.mean([g['years'] for g in st.session_state.goals])
-        
-        st.markdown("### 📊 Goals Overview")
-        overview_cols = st.columns(3)
-        with overview_cols[0]:
-            st.metric("Total Goals", len(st.session_state.goals))
-        with overview_cols[1]:
-            st.metric("Total Target", format_currency(total_goals_value))
-        with overview_cols[2]:
-            st.metric("Average Timeline", f"{avg_years:.1f} years")
-
-        # Goals List with Progress
-        st.markdown("### 📋 Your Financial Goals")
-        for i, goal in enumerate(st.session_state.goals):
-            # Calculate required SIP
-            r = goal['return']/100/12
-            n = goal['years']*12
-            target = goal['amount']
-            if r > 0:
-                sip = target * (r / ((1+r)**n - 1))
-            else:
-                sip = target / n
-            
-            total_investment = sip * n
-            potential_growth = target - total_investment
-            
-            with st.container():
-                col1, col2, col3 = st.columns([3, 2, 1])
-                
-                with col1:
-                    st.markdown(f"""
-                    <div class='metric-card'>
-                        <h4>🎯 {goal['name']}</h4>
-                        <p>💰 Target: <strong>{format_currency(goal['amount'])}</strong> | 
-                           📅 Timeline: <strong>{goal['years']} years</strong> | 
-                           📈 Expected Return: <strong>{goal['return']}%</strong></p>
-                    </div>
-                    """, unsafe_allow_html=True)
-                
-                with col2:
-                    st.markdown(f"""
-                    <div class='financial-sticker'>
-                        <p><strong>💸 Monthly SIP Required:</strong> {format_currency(sip)}</p>
-                        <p><strong>💰 Total Investment:</strong> {format_currency(total_investment)}</p>
-                        <p><strong>📊 Potential Growth:</strong> {format_currency(potential_growth)}</p>
-                    </div>
-                    """, unsafe_allow_html=True)
-                
-                with col3:
-                    if st.button('🗑️', key=f'delete_{i}', help='Delete this goal'):
-                        st.session_state.goals.pop(i)
-                        save_json(GOALS_FILE, st.session_state.goals)
+        with col3:
+            if st.session_state.current_question < len(quiz.questions) - 1:
+                if st.button("Next ➡️", use_container_width=True):
+                    if current_q['id'] in st.session_state.quiz_answers:
+                        st.session_state.current_question += 1
                         st.rerun()
-
-        # SIP Summary
-        st.markdown("### 💰 SIP Investment Summary")
-        
-        # Calculate all required SIPs
-        goal_sips = []
-        for goal in st.session_state.goals:
-            r = goal['return']/100/12
-            n = goal['years']*12
-            target = goal['amount']
-            if r > 0:
-                sip = target * (r / ((1+r)**n - 1))
+                    else:
+                        st.warning("Please select an option before proceeding.")
             else:
-                sip = target / n
-            goal_sips.append(sip)
-        
-        total_monthly_sip = sum(goal_sips)
-        
-        summary_cols = st.columns(2)
-        with summary_cols[0]:
-            st.metric("Total Monthly SIP", format_currency(total_monthly_sip), "Required for all goals")
-        with summary_cols[1]:
-            st.metric("Annual Investment", format_currency(total_monthly_sip * 12), "Yearly commitment")
-
-        # Progress visualization
-        st.markdown("### 📈 Goal Progress Visualization")
-        goal_names = [g['name'] for g in st.session_state.goals]
-        goal_amounts = [g['amount'] for g in st.session_state.goals]
-        goal_sips = [sip for sip in goal_sips]
-        
-        fig = go.Figure()
-        fig.add_trace(go.Bar(name='Target Amount', x=goal_names, y=goal_amounts, 
-                            marker_color='#6366f1', text=[format_currency(amt) for amt in goal_amounts],
-                            textposition='auto'))
-        fig.add_trace(go.Bar(name='Monthly SIP', x=goal_names, y=goal_sips,
-                            marker_color='#10b981', text=[format_currency(sip) for sip in goal_sips],
-                            textposition='auto'))
-        
-        fig.update_layout(
-            title='Goals vs Required Monthly SIPs',
-            barmode='group',
-            showlegend=True,
-            height=400,
-            paper_bgcolor='rgba(0,0,0,0)',
-            font={'color': 'black'}
-        )
-        st.plotly_chart(fig, use_container_width=True)
-        
-        # Clear all goals button
-        if st.button('🗑️ Clear All Goals', type='secondary', use_container_width=True):
-            st.session_state.goals = []
-            save_json(GOALS_FILE, [])
-            st.rerun()
+                if st.button("Complete Quiz 🎯", type="primary", use_container_width=True):
+                    if current_q['id'] in st.session_state.quiz_answers:
+                        st.session_state.quiz_completed = True
+                        st.rerun()
+                    else:
+                        st.warning("Please select an option to complete the quiz.")
     
     else:
-        # Empty state with encouragement
-        st.markdown("""
-        <div class='financial-sticker' style='text-align: center;'>
-            <h3>🎯 No Goals Set Yet!</h3>
-            <p>Start by adding your first financial goal above. 🚀</p>
-            <p><small>Examples: Down payment for house, children's education, retirement corpus, dream vacation</small></p>
+        # Quiz completed - show results
+        st.balloons()
+        st.success("🎉 Quiz Completed! Here's Your Investment Personality Analysis")
+        
+        # Calculate results
+        quiz = FinancialBehaviorQuiz()
+        answers_with_scores = {}
+        
+        for q_id, option_index in st.session_state.quiz_answers.items():
+            question = next(q for q in quiz.questions if q['id'] == q_id)
+            selected_option = question['options'][option_index]
+            answers_with_scores[q_id] = selected_option['score']
+        
+        personality_result = quiz.calculate_personality(answers_with_scores)
+        recommendations = quiz.get_recommendations(personality_result)
+        
+        # Display Personality Results
+        st.markdown("### 🎯 Your Investment Personality")
+        
+        personality_class = ""
+        if "Conservative" in personality_result['personality']:
+            personality_class = "personality-conservative"
+        elif "Cautious" in personality_result['personality']:
+            personality_class = "personality-moderate"
+        elif "Balanced" in personality_result['personality']:
+            personality_class = "personality-balanced"
+        else:
+            personality_class = "personality-aggressive"
+        
+        st.markdown(f"""
+        <div class='{personality_class}'>
+            <h2>{personality_result['personality']}</h2>
+            <h3>Risk Level: {personality_result['risk_level']}</h3>
+            <p>{personality_result['description']}</p>
+            <p><strong>Personality Score:</strong> {personality_result['score']} ({personality_result['score_percentage']:.1f}%)</p>
         </div>
         """, unsafe_allow_html=True)
-
-# --- Portfolio Page ---
-elif st.session_state.current_page == "💼 Portfolio":
-    st.header('💼 Portfolio Manager')
-    st.markdown("""
-    <div class='financial-sticker'>
-        <h3>Track Your Investments</h3>
-        <p>Add your current holdings and visualize your portfolio allocation.</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-    with st.form('portfolio_form'):
-        cols = st.columns(3)
-        name = cols[0].text_input('Holding Name', placeholder='e.g., Reliance Stocks, SBI Mutual Fund')
-        amt = cols[1].number_input('Amount (₹)', min_value=0.0, value=0.0, step=1000.0)
-        category = cols[2].selectbox('Category', ['Stocks', 'Mutual Funds', 'FD/RD', 'Gold', 'Real Estate', 'Other'])
         
-        add = cols[2].form_submit_button('➕ Add Holding')
-        
-        if add and name and amt>0:
-            st.session_state.portfolio.append({'name': name, 'amount': amt, 'category': category})
-            save_json(PORTFOLIO_FILE, st.session_state.portfolio)
-            st.success('✅ Holding added successfully!')
-
-    if st.session_state.portfolio:
-        pfdf = pd.DataFrame(st.session_state.portfolio)
-        total_portfolio = pfdf['amount'].sum()
-        pfdf['pct'] = (pfdf['amount'] / total_portfolio) * 100
+        # Display Recommendations
+        st.markdown("### 💡 Personalized Investment Recommendations")
         
         col1, col2 = st.columns(2)
         
         with col1:
-            st.subheader('Portfolio Holdings')
-            st.dataframe(pfdf.style.format({
-                'amount': '₹{:,.0f}',
-                'pct': '{:.1f}%'
-            }), use_container_width=True)
+            st.markdown("#### 📊 Recommended Asset Allocation")
+            allocation_data = []
+            for asset, percentage in recommendations['asset_allocation'].items():
+                allocation_data.append([asset, percentage])
             
-            # Portfolio summary
-            st.metric("Total Portfolio Value", format_currency(total_portfolio))
+            allocation_df = pd.DataFrame(allocation_data, columns=['Asset Class', 'Allocation'])
+            st.dataframe(allocation_df, use_container_width=True)
             
-        with col2:
-            st.subheader('Portfolio Allocation')
-            fig = px.pie(pfdf, names='category', values='amount', title='Investment Allocation by Category')
+            # Asset allocation pie chart
+            fig = px.pie(allocation_df, values='Allocation', names='Asset Class', 
+                        title='Recommended Portfolio Allocation')
             fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', font={'color': 'black'})
             st.plotly_chart(fig, use_container_width=True)
-
-        # Download option
-        csv = pfdf.to_csv(index=False).encode('utf-8')
-        st.download_button('📥 Download Portfolio CSV', csv, 'portfolio.csv', 'text/csv')
-
-    else:
-        st.info("No portfolio holdings added yet. Use the form above to add your investments.")
-
-# --- Export Page ---
-elif st.session_state.current_page == "📥 Export":
-    st.header('📥 Export Reports & Data')
-    
-    if not st.session_state.user_data:
-        st.info('📊 No financial data found. Please create a snapshot first.')
-    else:
-        analyzer = FinancialAnalyzer(st.session_state.user_data)
-        metrics = analyzer.calculate_financial_metrics()
-        advanced = analyzer.calculate_advanced_metrics(metrics)
         
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.markdown("### 📄 Report Options")
-            
-            if st.button('📊 Generate Comprehensive Report', use_container_width=True):
-                # Create a simple text report (you can enhance this with PDF generation)
-                report_content = f"""
-                FINANCIAL HEALTH REPORT
-                Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M')}
-                
-                PERSONAL FINANCE SNAPSHOT:
-                - Monthly Income: {format_currency(metrics['monthly_income'])}
-                - Monthly Savings: {format_currency(metrics['monthly_savings'])}
-                - Savings Rate: {metrics['savings_rate']:.1f}%
-                - Net Worth: {format_currency(advanced['net_worth'])}
-                
-                ML INSIGHTS:
-                - Risk Profile: {advanced['ml_risk_profile']}
-                - Risk Score: {advanced['ml_risk_score']:.1f}/10
-                - Financial Health Score: {advanced['health_score']}/100
-                
-                RECOMMENDATIONS:
-                {chr(10).join(['- ' + insight for insight in advanced.get('spending_insights', [])])}
-                """
-                
-                st.download_button(
-                    '📥 Download Text Report', 
-                    report_content, 
-                    f'financial_report_{datetime.now().strftime("%Y%m%d")}.txt', 
-                    'text/plain'
-                )
-
         with col2:
-            st.markdown("### 💾 Data Export")
-            if st.button('📁 Download Snapshot JSON', use_container_width=True):
-                snapshot_json = json.dumps(st.session_state.user_data, indent=2).encode('utf-8')
-                st.download_button(
-                    '📥 Download JSON', 
-                    snapshot_json, 
-                    'financial_snapshot.json', 
-                    'application/json'
-                )
+            st.markdown("#### 🏆 Recommended Funds")
+            for i, fund in enumerate(recommendations['recommended_funds'], 1):
+                st.markdown(f"{i}. **{fund}**")
             
-            if st.session_state.goals:
-                if st.button('🎯 Download Goals Data', use_container_width=True):
-                    goals_json = json.dumps(st.session_state.goals, indent=2).encode('utf-8')
-                    st.download_button(
-                        '📥 Download Goals JSON', 
-                        goals_json, 
-                        'financial_goals.json', 
-                        'application/json'
-                    )
+            st.markdown("#### 🎯 Investment Strategy")
+            st.info(recommendations['strategy'])
+            
+            st.markdown("#### 💡 Suggestions")
+            for suggestion in recommendations['suggestions']:
+                st.markdown(f"• {suggestion}")
+        
+        # Behavioral Insights
+        st.markdown("### 🔍 Behavioral Insights")
+        
+        insights_cols = st.columns(2)
+        
+        with insights_cols[0]:
+            st.markdown("#### 📈 Your Risk Pattern")
+            risk_data = {
+                'Aspect': ['Market Volatility', 'Investment Horizon', 'Risk Tolerance', 'Experience Level'],
+                'Score': [
+                    answers_with_scores.get(1, 0),
+                    answers_with_scores.get(3, 0),
+                    answers_with_scores.get(4, 0),
+                    answers_with_scores.get(5, 0)
+                ]
+            }
+            risk_df = pd.DataFrame(risk_data)
+            fig = px.bar(risk_df, x='Aspect', y='Score', title='Risk Profile Breakdown',
+                        color='Score', color_continuous_scale='Viridis')
+            fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', font={'color': 'black'})
+            st.plotly_chart(fig, use_container_width=True)
+        
+        with insights_cols[1]:
+            st.markdown("#### 💰 Financial Behavior")
+            behavior_data = {
+                'Behavior': ['Emergency Fund Priority', 'Investment Allocation', 'Decision Making', 'Market Reaction'],
+                'Score': [
+                    answers_with_scores.get(7, 0),
+                    answers_with_scores.get(6, 0),
+                    answers_with_scores.get(8, 0),
+                    answers_with_scores.get(1, 0)
+                ]
+            }
+            behavior_df = pd.DataFrame(behavior_data)
+            fig = px.pie(behavior_df, values='Score', names='Behavior', title='Behavioral Patterns')
+            fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', font={'color': 'black'})
+            st.plotly_chart(fig, use_container_width=True)
+        
+        # Action Plan
+        st.markdown("### 🚀 Your Action Plan")
+        
+        action_cols = st.columns(3)
+        
+        with action_cols[0]:
+            st.markdown("""
+            <div class='metric-card'>
+                <h4>📅 Immediate Actions (1-2 weeks)</h4>
+                <p>• Review emergency fund</p>
+                <p>• Research recommended funds</p>
+                <p>• Set up SIP if applicable</p>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        with action_cols[1]:
+            st.markdown("""
+            <div class='metric-card'>
+                <h4>📊 Short-term Goals (1-3 months)</h4>
+                <p>• Implement asset allocation</p>
+                <p>• Start systematic investments</p>
+                <p>• Set up portfolio tracking</p>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        with action_cols[2]:
+            st.markdown("""
+            <div class='metric-card'>
+                <h4>🎯 Long-term Strategy (6+ months)</h4>
+                <p>• Regular portfolio review</p>
+                <p>• Rebalance as needed</p>
+                <p>• Monitor performance</p>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        # Reset quiz button
+        st.markdown("---")
+        if st.button("🔄 Take Quiz Again", use_container_width=True):
+            st.session_state.quiz_answers = {}
+            st.session_state.current_question = 0
+            st.session_state.quiz_completed = False
+            st.rerun()
 
-# --- Developer Page ---
+# Update the Developer page with clickable links
 elif st.session_state.current_page == "👨‍💻 Developer":
     st.header('👨‍💻 About the Developer')
     
@@ -1576,127 +764,45 @@ elif st.session_state.current_page == "👨‍💻 Developer":
     </div>
     """, unsafe_allow_html=True)
     
-    # Skills & Specialization
-    st.markdown("### 🔬 Data Science Specialization")
-    
-    ds_cols = st.columns(3)
-    
-    with ds_cols[0]:
-        st.markdown("""
-        <div class='metric-card'>
-            <h4>🤖 Machine Learning</h4>
-            <p>Predictive Modeling & AI Algorithms</p>
-            <p><small>Random Forests, Neural Networks, Time Series Analysis</small></p>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with ds_cols[1]:
-        st.markdown("""
-        <div class='metric-card'>
-            <h4>📈 Financial Analytics</h4>
-            <p>Risk Analysis & Investment Forecasting</p>
-            <p><small>Portfolio Optimization, Technical Analysis</small></p>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with ds_cols[2]:
-        st.markdown("""
-        <div class='metric-card'>
-            <h4>🔄 MLOps & Deployment</h4>
-            <p>Model Deployment & Scalable Systems</p>
-            <p><small>Streamlit, FastAPI, Cloud Deployment</small></p>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    # Contact Information
+    # Clickable Social Links
     st.markdown("### 📱 Connect & Collaborate")
     
     contact_cols = st.columns(4)
     
     with contact_cols[0]:
         st.markdown("""
-        <div style='text-align: center; padding: 1rem; background: #1f2937; border-radius: 12px; color: white;'>
+        <a href="https://github.com/ayushshukla" target="_blank" class="social-link">
             <div style='font-size: 2rem;'>🐙</div>
             <p><strong>GitHub</strong></p>
             <p style='font-size: 0.8em;'>ayushshukla</p>
-        </div>
+        </a>
         """, unsafe_allow_html=True)
     
     with contact_cols[1]:
         st.markdown("""
-        <div style='text-align: center; padding: 1rem; background: #0369a1; border-radius: 12px; color: white;'>
+        <a href="https://linkedin.com/in/ayushshukla" target="_blank" class="social-link">
             <div style='font-size: 2rem;'>💼</div>
             <p><strong>LinkedIn</strong></p>
             <p style='font-size: 0.8em;'>ayushshukla</p>
-        </div>
+        </a>
         """, unsafe_allow_html=True)
     
     with contact_cols[2]:
         st.markdown("""
-        <div style='text-align: center; padding: 1rem; background: #dc2626; border-radius: 12px; color: white;'>
+        <a href="mailto:ayush.shukla@example.com" class="social-link">
             <div style='font-size: 2rem;'>📧</div>
             <p><strong>Email</strong></p>
             <p style='font-size: 0.8em;'>Contact Me</p>
-        </div>
+        </a>
         """, unsafe_allow_html=True)
     
     with contact_cols[3]:
         st.markdown("""
-        <div style='text-align: center; padding: 1rem; background: #7c3aed; border-radius: 12px; color: white;'>
+        <a href="https://ayushshukla.xyz" target="_blank" class="social-link">
             <div style='font-size: 2rem;'>🌐</div>
             <p><strong>Portfolio</strong></p>
             <p style='font-size: 0.8em;'>ayushshukla.xyz</p>
-        </div>
+        </a>
         """, unsafe_allow_html=True)
-    
-    # Project Details
-    st.markdown("---")
-    st.markdown("### 🚀 About This Project")
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.markdown("""
-        <div class='metric-card'>
-            <h4>🎯 Project Vision</h4>
-            <p>Democratize financial knowledge through AI and make personal finance management accessible to everyone.</p>
-            <p><strong>Features:</strong></p>
-            <ul>
-                <li>ML-powered risk assessment</li>
-                <li>Intelligent goal planning</li>
-                <li>Real-time investment analysis</li>
-                <li>Personalized recommendations</li>
-            </ul>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with col2:
-        st.markdown("""
-        <div class='metric-card'>
-            <h4>🛠️ Technology Stack</h4>
-            <p><strong>Frontend:</strong> Streamlit, Plotly</p>
-            <p><strong>Backend:</strong> Python, Pandas, NumPy</p>
-            <p><strong>ML Algorithms:</strong> Custom ensemble methods</p>
-            <p><strong>Data:</strong> Simulated financial data</p>
-            <p><strong>Deployment:</strong> Streamlit Cloud</p>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    # Call to Action
-    st.markdown("""
-    <div class='financial-sticker' style='text-align: center;'>
-        <h3>💡 Let's Build Together!</h3>
-        <p>Interested in collaborating on data science projects or have ideas for improvement?</p>
-        <p>Feel free to reach out through any of the platforms above.</p>
-    </div>
-    """, unsafe_allow_html=True)
 
-# --- Footer ---
-st.markdown("---")
-st.markdown("""
-<div style='text-align: center; color: #64748b; padding: 1rem;'>
-    <p>Built with ❤️ by Ayush Shukla | AI Financial Advisor v3.0</p>
-    <p>🤖 Powered by Machine Learning & Data Science | 📊 Your Financial Companion</p>
-</div>
-""", unsafe_allow_html=True)
-
+# Continue with the rest of the existing code...
