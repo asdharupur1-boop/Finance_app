@@ -10,15 +10,6 @@ from io import BytesIO
 import warnings
 warnings.filterwarnings('ignore')
 
-# Import for PDF generation
-from reportlab.lib.pagesizes import letter, A4
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import inch
-from reportlab.lib import colors
-from reportlab.pdfgen import canvas
-import base64
-
 # Set page config
 st.set_page_config(
     page_title='AI Financial Advisor — By Ayush Shukla', 
@@ -27,7 +18,7 @@ st.set_page_config(
     initial_sidebar_state='auto'
 )
 
-# Enhanced Light Theme with Different Widget Colors
+# Super Impressive Enhanced Light Theme
 st.markdown("""
 <style>
     /* Global styles */
@@ -36,220 +27,353 @@ st.markdown("""
     }
     
     .stApp {
-        background-color: #f8fafc;
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
     }
     
     .main .block-container {
         background-color: #ffffff;
-        padding: 2rem 1rem;
-        border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        margin: 1rem auto;
+        padding: 2.5rem 1.5rem;
+        border-radius: 20px;
+        box-shadow: 0 8px 40px rgba(0,0,0,0.12);
+        margin: 1.5rem auto;
         max-width: 1400px;
+        border: 1px solid #f1f5f9;
     }
     
-    /* Different text colors for better visibility */
+    /* Perfect text visibility */
     h1, h2, h3, h4, h5, h6 {
         color: #1e293b !important;
-        font-weight: 600 !important;
+        font-weight: 700 !important;
+        font-family: 'Inter', sans-serif;
     }
+    
+    h1 { font-size: 2.75rem !important; margin-bottom: 1rem !important; }
+    h2 { font-size: 2.25rem !important; margin-bottom: 0.75rem !important; }
+    h3 { font-size: 1.75rem !important; margin-bottom: 0.5rem !important; }
+    h4 { font-size: 1.5rem !important; margin-bottom: 0.5rem !important; }
     
     p, div, span, label, .stMarkdown, .stText {
         color: #374151 !important;
+        font-family: 'Inter', sans-serif;
+        font-size: 1.1rem;
+        line-height: 1.7;
     }
     
-    /* Widget styling with different colors */
+    /* Enhanced widget styling */
     .stNumberInput>div>div>input, .stTextInput>div>div>input {
         color: #1e293b !important;
-        background-color: #f8fafc !important;
-        border: 2px solid #cbd5e1 !important;
-        border-radius: 8px !important;
+        background-color: #ffffff !important;
+        border: 2.5px solid #e2e8f0 !important;
+        border-radius: 12px !important;
+        font-size: 1.1rem !important;
+        font-weight: 500 !important;
+        padding: 14px 18px !important;
     }
     
     .stSelectbox>div>div>select {
         color: #1e293b !important;
-        background-color: #f8fafc !important;
-        border: 2px solid #cbd5e1 !important;
-        border-radius: 8px !important;
+        background-color: #ffffff !important;
+        border: 2.5px solid #e2e8f0 !important;
+        border-radius: 12px !important;
+        font-size: 1.1rem !important;
+        font-weight: 500 !important;
+        padding: 12px !important;
     }
     
     .stSlider>div>div>div>div {
-        background-color: #3b82f6 !important;
+        background: linear-gradient(90deg, #3b82f6, #8b5cf6) !important;
+        height: 8px !important;
+        border-radius: 10px !important;
     }
     
     .stButton>button {
-        background-color: #3b82f6;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
         border: none;
-        border-radius: 8px;
-        padding: 0.5rem 1rem;
-        font-weight: 500;
-        transition: all 0.3s ease;
+        border-radius: 14px;
+        padding: 16px 32px;
+        font-weight: 700;
+        font-size: 1.1rem;
+        transition: all 0.4s ease;
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        margin: 8px 0;
     }
     
     .stButton>button:hover {
-        background-color: #2563eb;
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        transform: translateY(-3px);
+        box-shadow: 0 12px 30px rgba(102, 126, 234, 0.6);
+    }
+    
+    /* Enhanced metric cards */
+    .metric-card {
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        border: 2.5px solid #f1f5f9;
+        border-radius: 20px;
+        padding: 2.5rem;
+        margin: 1.5rem 0;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+        transition: all 0.4s ease;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .metric-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #667eea, #764ba2);
+    }
+    
+    .metric-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 20px 50px rgba(0,0,0,0.15);
+        border-color: #3b82f6;
+    }
+    
+    .metric-value {
+        font-size: 3rem !important;
+        font-weight: 800 !important;
+        color: #1e293b !important;
+        margin: 1rem 0;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    
+    .metric-label {
+        font-size: 1.3rem !important;
+        font-weight: 600 !important;
+        color: #64748b !important;
+        margin-bottom: 1rem;
+    }
+    
+    /* Enhanced custom components */
+    .ml-insight {
+        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+        border: 3px solid #7dd3fc;
+        border-radius: 16px;
+        padding: 1.75rem;
+        margin: 1.25rem 0;
+        color: #0c4a6e !important;
+        font-weight: 600;
+        font-size: 1.1rem;
+        box-shadow: 0 6px 20px rgba(125, 211, 252, 0.2);
+        border-left: 6px solid #0ea5e9;
+    }
+    
+    .financial-sticker {
+        background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+        border: 3px solid #86efac;
+        border-radius: 16px;
+        padding: 1.75rem;
+        margin: 1.25rem 0;
+        color: #166534 !important;
+        font-weight: 600;
+        font-size: 1.1rem;
+        box-shadow: 0 6px 20px rgba(134, 239, 172, 0.2);
+        border-left: 6px solid #22c55e;
+    }
+    
+    .ai-prediction {
+        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+        border: 3px solid #fcd34d;
+        border-radius: 16px;
+        padding: 1.75rem;
+        margin: 1.25rem 0;
+        color: #92400e !important;
+        font-weight: 600;
+        font-size: 1.1rem;
+        box-shadow: 0 6px 20px rgba(252, 211, 77, 0.2);
+        border-left: 6px solid #f59e0b;
     }
     
     /* Quiz specific styling */
     .quiz-question {
         background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-        border: 2px solid #7dd3fc;
-        border-radius: 12px;
-        padding: 1.5rem;
-        margin: 1rem 0;
+        border: 3px solid #7dd3fc;
+        border-radius: 20px;
+        padding: 2.5rem;
+        margin: 2rem 0;
+        box-shadow: 0 8px 30px rgba(125, 211, 252, 0.25);
     }
     
     .quiz-option {
         background: white;
-        border: 2px solid #e2e8f0;
-        border-radius: 8px;
-        padding: 1rem;
-        margin: 0.5rem 0;
+        border: 2.5px solid #e2e8f0;
+        border-radius: 14px;
+        padding: 1.5rem;
+        margin: 1rem 0;
         cursor: pointer;
         transition: all 0.3s ease;
+        font-weight: 600;
+        font-size: 1.1rem;
     }
     
     .quiz-option:hover {
         border-color: #3b82f6;
         background-color: #f0f9ff;
+        transform: translateY(-3px);
+        box-shadow: 0 6px 20px rgba(59, 130, 246, 0.15);
     }
     
     .quiz-option.selected {
         border-color: #3b82f6;
-        background-color: #dbeafe;
-    }
-    
-    /* Metric cards with different colors */
-    .metric-card {
-        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-        border: 2px solid #e2e8f0;
-        border-radius: 12px;
-        padding: 1.5rem;
-        margin: 0.5rem 0;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        transition: transform 0.2s ease;
-    }
-    
-    .metric-card:hover {
+        background: linear-gradient(135deg, #dbeafe 0%, #93c5fd 100%);
+        color: #1e40af;
+        font-weight: 700;
         transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        border-color: #3b82f6;
-    }
-    
-    /* Custom components with different colors */
-    .ml-insight {
-        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-        border: 2px solid #7dd3fc;
-        border-radius: 8px;
-        padding: 1rem;
-        margin: 0.5rem 0;
-        color: #0c4a6e !important;
-    }
-    
-    .financial-sticker {
-        background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
-        border: 2px solid #86efac;
-        border-radius: 8px;
-        padding: 1rem;
-        margin: 0.5rem 0;
-        color: #166534 !important;
-    }
-    
-    .ai-prediction {
-        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-        border: 2px solid #fcd34d;
-        border-radius: 8px;
-        padding: 1rem;
-        margin: 0.5rem 0;
-        color: #92400e !important;
-    }
-    
-    .warning-card {
-        background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
-        border: 2px solid #fca5a5;
-        border-radius: 8px;
-        padding: 1rem;
-        margin: 0.5rem 0;
-        color: #dc2626 !important;
     }
     
     /* Personality result cards */
     .personality-conservative {
         background: linear-gradient(135deg, #dbeafe 0%, #93c5fd 100%);
-        border: 3px solid #3b82f6;
-        border-radius: 12px;
-        padding: 2rem;
-        margin: 1rem 0;
+        border: 4px solid #3b82f6;
+        border-radius: 24px;
+        padding: 3rem;
+        margin: 2rem 0;
+        text-align: center;
+        box-shadow: 0 12px 40px rgba(59, 130, 246, 0.25);
     }
     
     .personality-moderate {
         background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-        border: 3px solid #f59e0b;
-        border-radius: 12px;
-        padding: 2rem;
-        margin: 1rem 0;
+        border: 4px solid #f59e0b;
+        border-radius: 24px;
+        padding: 3rem;
+        margin: 2rem 0;
+        text-align: center;
+        box-shadow: 0 12px 40px rgba(245, 158, 11, 0.25);
     }
     
     .personality-aggressive {
         background: linear-gradient(135deg, #fecaca 0%, #fca5a5 100%);
-        border: 3px solid #ef4444;
-        border-radius: 12px;
-        padding: 2rem;
-        margin: 1rem 0;
+        border: 4px solid #ef4444;
+        border-radius: 24px;
+        padding: 3rem;
+        margin: 2rem 0;
+        text-align: center;
+        box-shadow: 0 12px 40px rgba(239, 68, 68, 0.25);
     }
     
     .personality-balanced {
         background: linear-gradient(135deg, #bbf7d0 0%, #86efac 100%);
-        border: 3px solid #22c55e;
-        border-radius: 12px;
-        padding: 2rem;
-        margin: 1rem 0;
+        border: 4px solid #22c55e;
+        border-radius: 24px;
+        padding: 3rem;
+        margin: 2rem 0;
+        text-align: center;
+        box-shadow: 0 12px 40px rgba(34, 197, 94, 0.25);
+    }
+    
+    /* Enhanced progress bars */
+    .stProgress > div > div > div > div {
+        background: linear-gradient(90deg, #3b82f6, #8b5cf6) !important;
+        border-radius: 12px !important;
+        height: 10px !important;
     }
     
     /* Mobile responsiveness */
     @media (max-width: 768px) {
         .main .block-container {
-            padding: 1rem 0.5rem;
-            margin: 0.5rem;
+            padding: 1.5rem 1rem;
+            margin: 1rem;
         }
         
         .metric-card {
-            padding: 1rem;
-            margin: 0.25rem 0;
+            padding: 2rem;
+            margin: 1rem 0;
         }
         
-        .stButton>button {
-            width: 100%;
-            margin: 0.25rem 0;
+        .metric-value {
+            font-size: 2.5rem !important;
         }
     }
     
-    /* Plotly graph background */
+    /* Plotly graph enhancements */
     .js-plotly-plot .plotly, .js-plotly-plot .plotly div {
         background-color: transparent !important;
     }
     
-    /* Social links styling */
+    /* Enhanced social links */
     .social-link {
         display: inline-block;
-        padding: 10px 20px;
-        margin: 5px;
+        padding: 18px 28px;
+        margin: 10px;
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white !important;
         text-decoration: none;
-        border-radius: 8px;
-        transition: all 0.3s ease;
+        border-radius: 14px;
+        transition: all 0.4s ease;
         text-align: center;
+        font-weight: 700;
+        font-size: 1.1rem;
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
     }
     
     .social-link:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        transform: translateY(-4px);
+        box-shadow: 0 12px 30px rgba(102, 126, 234, 0.6);
         color: white !important;
         text-decoration: none;
+    }
+    
+    /* Data table enhancements */
+    .dataframe {
+        border-radius: 16px !important;
+        overflow: hidden !important;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.12) !important;
+        font-size: 1.1rem !important;
+    }
+    
+    /* Section headers */
+    .section-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 20px;
+        margin: 2.5rem 0 1.5rem 0;
+        text-align: center;
+        box-shadow: 0 8px 30px rgba(102, 126, 234, 0.4);
+    }
+    
+    /* Tab enhancements */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 12px;
+        padding: 0 1rem;
+    }
+    
+    .stTabs [data-baseweb="tab"] {
+        height: 70px;
+        white-space: pre-wrap;
+        background-color: #f8fafc;
+        border-radius: 16px 16px 0 0;
+        gap: 10px;
+        padding: 20px 24px;
+        font-weight: 700;
+        font-size: 1.1rem;
+        border: 2px solid #e2e8f0;
+    }
+    
+    .stTabs [aria-selected="true"] {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        color: white !important;
+        border-color: #667eea !important;
+    }
+    
+    /* Form enhancements */
+    .stForm {
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        border: 2.5px solid #f1f5f9;
+        border-radius: 20px;
+        padding: 2.5rem;
+        margin: 2rem 0;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.08);
     }
 </style>
 """, unsafe_allow_html=True)
@@ -343,33 +467,38 @@ class FinancialBehaviorQuiz:
     def calculate_personality(self, answers):
         """Calculate investment personality based on quiz answers"""
         total_score = sum(answers.values())
-        max_score = len(self.questions) * 8  # 8 is max score per question
+        max_score = len(self.questions) * 8
         
         score_percentage = (total_score / max_score) * 100
         
         if score_percentage <= 30:
-            personality = "Conservative Defender"
+            personality = "🛡️ Conservative Defender"
             risk_level = "Low"
-            description = "You prioritize capital preservation and prefer stable, low-risk investments. Safety is your top concern."
+            description = "You prioritize capital preservation and prefer stable, low-risk investments. Safety is your top concern with focus on guaranteed returns."
+            color = "#3b82f6"
         elif score_percentage <= 50:
-            personality = "Cautious Planner"
+            personality = "📊 Cautious Planner"
             risk_level = "Low to Moderate"
-            description = "You prefer steady growth with minimal risk, balancing safety with some growth opportunities."
+            description = "You prefer steady growth with minimal risk, balancing safety with some growth opportunities through diversified approach."
+            color = "#f59e0b"
         elif score_percentage <= 70:
-            personality = "Balanced Grower"
+            personality = "⚖️ Balanced Grower"
             risk_level = "Moderate"
-            description = "You seek balanced growth through diversified investments, accepting moderate risk for better returns."
+            description = "You seek balanced growth through diversified investments, accepting moderate risk for better returns with systematic approach."
+            color = "#22c55e"
         else:
-            personality = "Aggressive Builder"
+            personality = "🚀 Aggressive Builder"
             risk_level = "High"
-            description = "You're comfortable with significant risk and volatility in pursuit of maximum growth potential."
+            description = "You're comfortable with significant risk and volatility in pursuit of maximum growth potential through equity-focused investments."
+            color = "#ef4444"
         
         return {
             'personality': personality,
             'risk_level': risk_level,
             'score': total_score,
             'score_percentage': score_percentage,
-            'description': description
+            'description': description,
+            'color': color
         }
     
     def get_recommendations(self, personality_result):
@@ -396,7 +525,8 @@ class FinancialBehaviorQuiz:
                     'Prioritize debt instruments and fixed deposits',
                     'Consider tax-saving fixed deposits',
                     'Start with small SIPs in large cap funds'
-                ]
+                ],
+                'risk_notes': 'Your portfolio will have minimal volatility with focus on capital protection.'
             }
         elif "Cautious" in personality:
             return {
@@ -417,8 +547,9 @@ class FinancialBehaviorQuiz:
                     'Maintain 4-6 months emergency fund',
                     'Systematic Investment Plans (SIPs) in diversified funds',
                     'Consider balanced advantage funds',
-                    'Regular portfolio reviews'
-                ]
+                    'Regular portfolio reviews every 6 months'
+                ],
+                'risk_notes': 'Moderate growth with controlled risk exposure.'
             }
         elif "Balanced" in personality:
             return {
@@ -439,8 +570,9 @@ class FinancialBehaviorQuiz:
                     '3-4 months emergency fund sufficient',
                     'Aggressive SIPs for long-term goals',
                     'Consider sectoral funds for diversification',
-                    'Regular rebalancing of portfolio'
-                ]
+                    'Regular rebalancing of portfolio annually'
+                ],
+                'risk_notes': 'Balanced risk-reward ratio for optimal growth.'
             }
         else:  # Aggressive
             return {
@@ -462,7 +594,8 @@ class FinancialBehaviorQuiz:
                     'Direct equity investments can be considered',
                     'Sector rotation strategies',
                     'Systematic Transfer Plans for lump sum investments'
-                ]
+                ],
+                'risk_notes': 'High growth potential with significant volatility exposure.'
             }
 
 # --- Enhanced ML Financial Predictor Class ---
@@ -502,11 +635,11 @@ class MLFinancialPredictor:
         }
         
         if risk_score < 3:
-            return "Conservative", 0.3, risk_score, "Low risk appetite suitable for stable investments like FDs and debt funds"
+            return "🛡️ Conservative", 0.3, risk_score, "Low risk appetite suitable for stable investments like FDs and debt funds"
         elif risk_score < 7:
-            return "Balanced", 0.5, risk_score, "Moderate risk with balanced growth approach across equity and debt"
+            return "⚖️ Balanced", 0.5, risk_score, "Moderate risk with balanced growth approach across equity and debt"
         else:
-            return "Aggressive", 0.7, risk_score, "High risk tolerance suitable for equity-heavy portfolios for maximum returns"
+            return "🚀 Aggressive", 0.7, risk_score, "High risk tolerance suitable for equity-heavy portfolios for maximum returns"
     
     def predict_goal_success_probability(self, goal, user_finances):
         """Enhanced ML goal prediction with multiple features"""
@@ -535,14 +668,18 @@ class MLFinancialPredictor:
         # ML confidence intervals
         if final_probability >= 0.8:
             confidence = "🎯 High confidence - You're on track to achieve this goal!"
+            color = "#10b981"
         elif final_probability >= 0.6:
             confidence = "✅ Moderate confidence - Minor adjustments may be needed"
+            color = "#f59e0b"
         elif final_probability >= 0.4:
             confidence = "⚠️ Low confidence - Consider increasing savings or extending timeline"
+            color = "#f97316"
         else:
             confidence = "🚨 Very low confidence - Goal may be unrealistic with current approach"
+            color = "#ef4444"
             
-        return final_probability, confidence
+        return final_probability, confidence, color
 
 # --- Data Persistence ---
 DATA_DIR = '.ai_financial_data'
@@ -596,7 +733,7 @@ if 'current_question' not in st.session_state:
 if 'quiz_completed' not in st.session_state:
     st.session_state.quiz_completed = False
 
-# --- Mutual Fund Data ---
+# --- Enhanced Mutual Fund Data ---
 @st.cache_data
 def get_mutual_fund_data():
     data = {
@@ -612,38 +749,90 @@ def get_mutual_fund_data():
         '5Y CAGR': [16.1, 17.2, 20.5, 21.8, 25.4, 26.8, 18.9, 20.1, 17.2, 18.1, 7.5, 7.2],
         'Risk': ['Moderate', 'Moderate', 'High', 'High', 'Very High', 'Very High', 
                 'High', 'High', 'High', 'High', 'Low', 'Low'],
-        'Rating': [5, 5, 5, 4, 5, 4, 5, 4, 5, 4, 4, 3]
+        'Rating': [5, 5, 5, 4, 5, 4, 5, 4, 5, 4, 4, 3],
+        'Expense Ratio': [0.5, 0.6, 0.8, 0.75, 1.0, 1.1, 0.7, 0.8, 0.6, 0.65, 0.3, 0.35]
     }
     return pd.DataFrame(data)
+
+# --- Enhanced Plotly Theme ---
+def apply_plotly_theme(fig):
+    """Apply consistent theme to all Plotly charts"""
+    fig.update_layout(
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+        font=dict(
+            family="Inter, sans-serif",
+            size=16,
+            color="#1e293b"
+        ),
+        title=dict(
+            font=dict(
+                size=22,
+                color="#1e293b",
+                family="Inter, sans-serif"
+            ),
+            x=0.5,
+            xanchor='center'
+        ),
+        legend=dict(
+            bgcolor='rgba(255,255,255,0.95)',
+            bordercolor='#e2e8f0',
+            borderwidth=2,
+            font=dict(
+                size=14,
+                color="#374151"
+            )
+        ),
+        xaxis=dict(
+            gridcolor='#e2e8f0',
+            gridwidth=2,
+            tickfont=dict(size=14, color="#64748b")
+        ),
+        yaxis=dict(
+            gridcolor='#e2e8f0',
+            gridwidth=2,
+            tickfont=dict(size=14, color="#64748b")
+        )
+    )
+    return fig
 
 # --- Main App Header ---
 st.title('🤖 AI Financial Advisor')
 st.markdown("""
-<div style='text-align: center; padding: 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-            border-radius: 12px; color: white; margin-bottom: 1rem;'>
-    <h3 style='color: white; margin: 0;'>Advanced ML-Powered Financial Planning</h3>
-    <p style='margin: 0.5rem 0 0 0; opacity: 0.9;'>Smart Analytics • ML Predictions • Data-Driven Insights</p>
+<div class='section-header'>
+    <h2 style='color: white; margin: 0;'>Advanced ML-Powered Financial Planning</h2>
+    <p style='color: white; margin: 0.5rem 0 0 0; opacity: 0.95; font-size: 1.3rem; font-weight: 500;'>
+    Smart Analytics • ML Predictions • Data-Driven Insights • Personalized Recommendations
+    </p>
 </div>
 """, unsafe_allow_html=True)
 
-# --- Navigation ---
+# --- Enhanced Navigation ---
 nav_options = [
     "📊 Snapshot", "📈 Dashboard", "🤖 ML Insights", 
     "🧠 Behavior Quiz", "💹 Investment Center", "🎯 Goals Planner", 
     "💼 Portfolio", "📥 Export", "👨‍💻 Developer"
 ]
 
-# Create navigation columns
+# Create enhanced navigation columns
+st.markdown("<br>", unsafe_allow_html=True)
 cols = st.columns(len(nav_options))
 for i, option in enumerate(nav_options):
     with cols[i]:
         if st.button(option, key=f"nav_{i}", use_container_width=True):
             st.session_state.current_page = option
 
+st.markdown("---")
+
 # --- Snapshot Page ---
 if st.session_state.current_page == "📊 Snapshot":
     st.header('📊 Financial Snapshot')
-    st.markdown("Complete your financial profile to get personalized AI-powered insights.")
+    st.markdown("""
+    <div class='financial-sticker'>
+        <h3>🚀 Build Your Complete Financial Profile</h3>
+        <p>Complete this detailed snapshot to unlock personalized AI-powered financial insights and recommendations.</p>
+    </div>
+    """, unsafe_allow_html=True)
     
     with st.form('snapshot_form'):
         col1, col2 = st.columns(2)
@@ -665,7 +854,7 @@ if st.session_state.current_page == "📊 Snapshot":
                                 value=st.session_state.user_data.get('age', 30), key='age')
             investment_experience = st.slider('Investment Experience Level (1-5)', 1, 5, 
                                             st.session_state.user_data.get('investment_experience', 2),
-                                            help="1: Beginner, 3: Intermediate, 5: Expert", key='investment_experience')
+                                            help="1: Beginner, 2: Some knowledge, 3: Intermediate, 4: Experienced, 5: Expert")
             
         with col2:
             st.markdown("### 💸 Monthly Expenses")
@@ -734,16 +923,16 @@ elif st.session_state.current_page == "📈 Dashboard":
         with col1:
             st.markdown(f"""
             <div class='metric-card'>
-                <h4>💰 Monthly Income</h4>
-                <h2>{format_currency(metrics['monthly_income'])}</h2>
+                <div class='metric-label'>💰 Monthly Income</div>
+                <div class='metric-value'>{format_currency(metrics['monthly_income'])}</div>
                 <p>Gross monthly earnings</p>
             </div>
             """, unsafe_allow_html=True)
         with col2:
             st.markdown(f"""
             <div class='metric-card'>
-                <h4>📊 Savings Rate</h4>
-                <h2>{metrics['savings_rate']:.1f}%</h2>
+                <div class='metric-label'>📊 Savings Rate</div>
+                <div class='metric-value'>{metrics['savings_rate']:.1f}%</div>
                 <p>Of monthly income saved</p>
             </div>
             """, unsafe_allow_html=True)
@@ -751,8 +940,8 @@ elif st.session_state.current_page == "📈 Dashboard":
             risk_profile, _, risk_score, _ = analyzer.predict_risk_tolerance(user_data)
             st.markdown(f"""
             <div class='metric-card'>
-                <h4>🛡️ Risk Profile</h4>
-                <h2>{risk_profile}</h2>
+                <div class='metric-label'>🛡️ Risk Profile</div>
+                <div class='metric-value'>{risk_profile}</div>
                 <p>Score: {risk_score:.1f}/10</p>
             </div>
             """, unsafe_allow_html=True)
@@ -760,8 +949,8 @@ elif st.session_state.current_page == "📈 Dashboard":
             net_worth = sum(user_data.get('assets', {}).values()) - sum(user_data.get('liabilities', {}).values())
             st.markdown(f"""
             <div class='metric-card'>
-                <h4>🏦 Net Worth</h4>
-                <h2>{format_currency(net_worth)}</h2>
+                <div class='metric-label'>🏦 Net Worth</div>
+                <div class='metric-value'>{format_currency(net_worth)}</div>
                 <p>Total assets minus liabilities</p>
             </div>
             """, unsafe_allow_html=True)
@@ -775,9 +964,7 @@ elif st.session_state.current_page == "📈 Dashboard":
                 fig = px.pie(values=list(expense_data.values()), 
                            names=list(expense_data.keys()),
                            title='Expense Distribution')
-                fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', 
-                                plot_bgcolor='rgba(0,0,0,0)',
-                                font={'color': 'black'})
+                fig = apply_plotly_theme(fig)
                 st.plotly_chart(fig, use_container_width=True)
             
             with col2:
@@ -813,9 +1000,9 @@ elif st.session_state.current_page == "🤖 ML Insights":
             <div class='metric-card'>
                 <h3>🤖 ML Risk Assessment</h3>
                 <div style='text-align: center;'>
-                    <h1 style='color: #7c3aed;'>{risk_profile}</h1>
-                    <p><strong>Risk Score:</strong> {risk_score:.1f}/10</p>
-                    <p>{risk_explanation}</p>
+                    <h1 style='color: #7c3aed; font-size: 2.5rem;'>{risk_profile}</h1>
+                    <p style='font-size: 1.2rem;'><strong>Risk Score:</strong> {risk_score:.1f}/10</p>
+                    <p style='font-size: 1.1rem;'>{risk_explanation}</p>
                 </div>
             </div>
             """, unsafe_allow_html=True)
@@ -830,7 +1017,7 @@ elif st.session_state.current_page == "🤖 ML Insights":
             if st.session_state.goals:
                 st.markdown("### 🎯 ML Goal Success Probability")
                 for goal in st.session_state.goals:
-                    probability, confidence = analyzer.predict_goal_success_probability(goal, user_data)
+                    probability, confidence, color = analyzer.predict_goal_success_probability(goal, user_data)
                     
                     col1, col2 = st.columns([4, 1])
                     with col1:
@@ -838,14 +1025,14 @@ elif st.session_state.current_page == "🤖 ML Insights":
                         <div class='metric-card'>
                             <h4>🎯 {goal['name']}</h4>
                             <p>Target: {format_currency(goal['amount'])} in {goal['years']} years | Expected Return: {goal.get('return', 8)}%</p>
-                            <div style='background: #e2e8f0; border-radius: 10px; height: 25px; margin: 10px 0;'>
-                                <div style='background: {'#10b981' if probability >= 0.7 else '#f59e0b' if probability >= 0.5 else '#ef4444'}; 
-                                          width: {probability*100}%; height: 100%; border-radius: 10px; 
-                                          text-align: center; color: white; font-weight: bold; line-height: 25px;'>
+                            <div style='background: #e2e8f0; border-radius: 12px; height: 30px; margin: 15px 0;'>
+                                <div style='background: {color}; 
+                                          width: {probability*100}%; height: 100%; border-radius: 12px; 
+                                          text-align: center; color: white; font-weight: bold; line-height: 30px; font-size: 1.1rem;'>
                                     {probability*100:.1f}% Success Probability
                                 </div>
                             </div>
-                            <p><strong>ML Assessment:</strong> {confidence}</p>
+                            <p style='font-size: 1.1rem;'><strong>ML Assessment:</strong> {confidence}</p>
                         </div>
                         """, unsafe_allow_html=True)
 
@@ -951,10 +1138,10 @@ elif st.session_state.current_page == "🧠 Behavior Quiz":
         
         st.markdown(f"""
         <div class='{personality_class}'>
-            <h2>{personality_result['personality']}</h2>
-            <h3>Risk Level: {personality_result['risk_level']}</h3>
-            <p>{personality_result['description']}</p>
-            <p><strong>Personality Score:</strong> {personality_result['score']} ({personality_result['score_percentage']:.1f}%)</p>
+            <h2 style='font-size: 2.5rem; margin-bottom: 1rem;'>{personality_result['personality']}</h2>
+            <h3 style='font-size: 1.8rem; color: {personality_result["color"]};'>Risk Level: {personality_result['risk_level']}</h3>
+            <p style='font-size: 1.3rem; line-height: 1.8;'>{personality_result['description']}</p>
+            <p style='font-size: 1.2rem;'><strong>Personality Score:</strong> {personality_result['score']} ({personality_result['score_percentage']:.1f}%)</p>
         </div>
         """, unsafe_allow_html=True)
         
@@ -970,21 +1157,28 @@ elif st.session_state.current_page == "🧠 Behavior Quiz":
                 allocation_data.append([asset, percentage])
             
             allocation_df = pd.DataFrame(allocation_data, columns=['Asset Class', 'Allocation'])
-            st.dataframe(allocation_df, use_container_width=True)
+            st.dataframe(allocation_df.style.set_properties(**{
+                'font-size': '1.2rem',
+                'text-align': 'center'
+            }), use_container_width=True)
             
             # Asset allocation pie chart
             fig = px.pie(allocation_df, values='Allocation', names='Asset Class', 
                         title='Recommended Portfolio Allocation')
-            fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', font={'color': 'black'})
+            fig = apply_plotly_theme(fig)
             st.plotly_chart(fig, use_container_width=True)
         
         with col2:
             st.markdown("#### 🏆 Recommended Funds")
             for i, fund in enumerate(recommendations['recommended_funds'], 1):
-                st.markdown(f"{i}. **{fund}**")
+                st.markdown(f"**{i}. {fund}**")
             
             st.markdown("#### 🎯 Investment Strategy")
-            st.info(recommendations['strategy'])
+            st.markdown(f"""
+            <div class='ai-prediction'>
+                <p style='font-size: 1.2rem;'>{recommendations['strategy']}</p>
+            </div>
+            """, unsafe_allow_html=True)
             
             st.markdown("#### 💡 Suggestions")
             for suggestion in recommendations['suggestions']:
@@ -1045,8 +1239,8 @@ elif st.session_state.current_page == "💹 Investment Center":
             fig.add_trace(go.Bar(name='Projected Profit', x=[str(p) + 'Y' for p in periods], 
                                 y=profits, marker_color='#10b981'))
             fig.update_layout(barmode='stack', title='Investment Growth Projection', 
-                            showlegend=True, paper_bgcolor='rgba(0,0,0,0)',
-                            font={'color': 'black'})
+                            showlegend=True)
+            fig = apply_plotly_theme(fig)
             st.plotly_chart(fig, use_container_width=True)
             
             # Detailed returns table
@@ -1056,7 +1250,9 @@ elif st.session_state.current_page == "💹 Investment Center":
                 'Future Value': [format_currency(fv) for fv in future_values],
                 'Profit': [format_currency(p) for p in profits]
             })
-            st.dataframe(returns_df, use_container_width=True)
+            st.dataframe(returns_df.style.format({
+                'Expected Return %': '{:.1f}%'
+            }), use_container_width=True)
 
     with tab2:
         st.subheader("SIP (Systematic Investment Plan) Calculator")
@@ -1225,7 +1421,7 @@ elif st.session_state.current_page == "💼 Portfolio":
         with col2:
             st.subheader('Portfolio Allocation')
             fig = px.pie(pfdf, names='category', values='amount', title='Investment Allocation by Category')
-            fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', font={'color': 'black'})
+            fig = apply_plotly_theme(fig)
             st.plotly_chart(fig, use_container_width=True)
 
 # --- Export Page ---
@@ -1280,12 +1476,12 @@ elif st.session_state.current_page == "👨‍💻 Developer":
     
     # Developer Profile
     st.markdown("""
-    <div style='text-align: center; padding: 2rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-                border-radius: 20px; color: white; margin-bottom: 2rem;'>
-        <div style='font-size: 4rem; margin-bottom: 1rem;'>🤖</div>
-        <h1 style='color: white; margin-bottom: 0.5rem;'>Ayush Shukla</h1>
-        <p style='font-size: 1.2em; opacity: 0.9; margin-bottom: 0;'>Data Scientist & ML Engineer</p>
-        <p style='opacity: 0.8;'>Building intelligent financial solutions with machine learning</p>
+    <div style='text-align: center; padding: 2.5rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                border-radius: 24px; color: white; margin-bottom: 2.5rem;'>
+        <div style='font-size: 4.5rem; margin-bottom: 1.5rem;'>🤖</div>
+        <h1 style='color: white; margin-bottom: 0.75rem; font-size: 3rem;'>Ayush Shukla</h1>
+        <p style='font-size: 1.5rem; opacity: 0.95; margin-bottom: 0;'>Data Scientist & ML Engineer</p>
+        <p style='opacity: 0.9; font-size: 1.2rem;'>Building intelligent financial solutions with machine learning</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -1297,44 +1493,44 @@ elif st.session_state.current_page == "👨‍💻 Developer":
     with contact_cols[0]:
         st.markdown("""
         <a href="https://github.com/ayushshukla" target="_blank" class="social-link">
-            <div style='font-size: 2rem;'>🐙</div>
+            <div style='font-size: 2.5rem;'>🐙</div>
             <p><strong>GitHub</strong></p>
-            <p style='font-size: 0.8em;'>ayushshukla</p>
+            <p style='font-size: 1rem;'>ayushshukla</p>
         </a>
         """, unsafe_allow_html=True)
     
     with contact_cols[1]:
         st.markdown("""
         <a href="https://linkedin.com/in/ayushshukla" target="_blank" class="social-link">
-            <div style='font-size: 2rem;'>💼</div>
+            <div style='font-size: 2.5rem;'>💼</div>
             <p><strong>LinkedIn</strong></p>
-            <p style='font-size: 0.8em;'>ayushshukla</p>
+            <p style='font-size: 1rem;'>ayushshukla</p>
         </a>
         """, unsafe_allow_html=True)
     
     with contact_cols[2]:
         st.markdown("""
         <a href="mailto:ayush.shukla@example.com" class="social-link">
-            <div style='font-size: 2rem;'>📧</div>
+            <div style='font-size: 2.5rem;'>📧</div>
             <p><strong>Email</strong></p>
-            <p style='font-size: 0.8em;'>Contact Me</p>
+            <p style='font-size: 1rem;'>Contact Me</p>
         </a>
         """, unsafe_allow_html=True)
     
     with contact_cols[3]:
         st.markdown("""
         <a href="https://ayushshukla.xyz" target="_blank" class="social-link">
-            <div style='font-size: 2rem;'>🌐</div>
+            <div style='font-size: 2.5rem;'>🌐</div>
             <p><strong>Portfolio</strong></p>
-            <p style='font-size: 0.8em;'>ayushshukla.xyz</p>
+            <p style='font-size: 1rem;'>ayushshukla.xyz</p>
         </a>
         """, unsafe_allow_html=True)
 
 # --- Footer ---
 st.markdown("---")
 st.markdown("""
-<div style='text-align: center; color: #64748b; padding: 1rem;'>
-    <p>Built with ❤️ by Ayush Shukla | AI Financial Advisor v3.0</p>
-    <p>🤖 Powered by Machine Learning & Data Science | 📊 Your Financial Companion</p>
+<div style='text-align: center; color: #64748b; padding: 2rem;'>
+    <p style='font-size: 1.2rem; font-weight: 600;'>Built with ❤️ by Ayush Shukla | AI Financial Advisor v4.0</p>
+    <p style='font-size: 1.1rem;'>🤖 Powered by Machine Learning & Data Science | 📊 Your Financial Companion</p>
 </div>
 """, unsafe_allow_html=True)
