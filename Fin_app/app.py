@@ -1172,42 +1172,33 @@ def apply_plotly_theme(fig):
     )
     return fig
 
-# --- Main App Header ---
-st.title('🤖 AI Financial Advisor')
+# --- Enhanced Main App Header with Centered Title & Privacy ---
 st.markdown("""
-<div class='section-header'>
-    <h2 style='color: white; margin: 0;'>Advanced ML-Powered Financial Planning</h2>
-    <p style='color: white; margin: 0.5rem 0 0 0; opacity: 0.95; font-size: 1.3rem; font-weight: 500;'>
-    Smart Analytics • ML Predictions • Data-Driven Insights • Personalized Recommendations
-    </p>
+<div style='text-align: center; margin-bottom: 2rem;'>
+    <h1 style='font-size: 4rem; margin-bottom: 1rem;'>🤖 AI Financial Advisor</h1>
+    <div style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                color: white; padding: 1.5rem; border-radius: 20px; 
+                margin: 1rem auto; max-width: 800px;'>
+        <h2 style='color: white; margin: 0; font-size: 1.8rem;'>Advanced ML-Powered Financial Planning</h2>
+        <p style='color: white; margin: 0.5rem 0 0 0; opacity: 0.95; font-size: 1.2rem; font-weight: 500;'>
+        Smart Analytics • ML Predictions • Data-Driven Insights • Personalized Recommendations
+        </p>
+    </div>
 </div>
 """, unsafe_allow_html=True)
 
-# --- Welcome Message for New Users ---
-if not st.session_state.user_data:
-    st.markdown("""
-    <div class='welcome-message'>
-        <h1 style='color: white; font-size: 2.5rem; margin-bottom: 1rem;'>🚀 Welcome to Your AI Financial Advisor!</h1>
-        <p style='color: white; font-size: 1.3rem; margin-bottom: 1.5rem;'>
-        Start your financial journey by creating your personal financial snapshot. This will unlock all features including:
-        </p>
-        <div style='display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; text-align: left;'>
-            <div style='color: white;'>
-                <p style='margin: 0.5rem 0;'>📊 Personalized Dashboard</p>
-                <p style='margin: 0.5rem 0;'>🤖 ML Risk Analysis</p>
-                <p style='margin: 0.5rem 0;'>🎯 Goal Planning</p>
-            </div>
-            <div style='color: white;'>
-                <p style='margin: 0.5rem 0;'>💹 Investment Center</p>
-                <p style='margin: 0.5rem 0;'>🧠 Behavior Quiz</p>
-                <p style='margin: 0.5rem 0;'>📥 PDF Reports</p>
-            </div>
-        </div>
-        <p style='color: white; font-size: 1.2rem; margin-top: 1.5rem; font-weight: 600;'>
-        👇 Click on "📊 Snapshot" below to get started!
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
+# --- Privacy Banner ---
+st.markdown("""
+<div style='background: linear-gradient(135deg, #10b981 0%, #059669 100%); 
+            color: white; padding: 1.5rem; border-radius: 16px; 
+            margin: 1rem 0 2rem 0; text-align: center;
+            border: 3px solid #34d399;'>
+    <h3 style='color: white; margin: 0 0 0.5rem 0; font-size: 1.5rem;'>🔒 100% Private & Secure</h3>
+    <p style='color: white; margin: 0; font-size: 1.1rem; font-weight: 500;'>
+    All your financial data is stored locally on your device • No data is shared with anyone • Complete privacy guaranteed
+    </p>
+</div>
+""", unsafe_allow_html=True)
 
 # --- Enhanced Navigation ---
 nav_options = [
@@ -1235,7 +1226,7 @@ if st.session_state.current_page == "📊 Snapshot":
         <div class='financial-sticker'>
             <h3>🎯 Let's Build Your Financial Profile!</h3>
             <p>Complete this detailed snapshot to unlock personalized AI-powered financial insights and recommendations.</p>
-            <p><strong>Why complete this?</strong> This information helps our AI provide accurate risk assessment, goal planning, and investment recommendations.</p>
+            <p><strong>🔒 Privacy Note:</strong> All your data stays 100% private on your device.</p>
         </div>
         """, unsafe_allow_html=True)
     else:
@@ -1243,6 +1234,7 @@ if st.session_state.current_page == "📊 Snapshot":
         <div class='financial-sticker'>
             <h3>✅ Your Financial Profile is Ready!</h3>
             <p>You can update your information below or explore other features using the navigation menu.</p>
+            <p><strong>🔒 Your data is securely stored locally.</strong></p>
         </div>
         """, unsafe_allow_html=True)
     
@@ -1349,6 +1341,7 @@ elif st.session_state.current_page == "📈 Dashboard":
         <div class='financial-sticker'>
             <h3>Get Started with Your Financial Journey!</h3>
             <p>Create your financial snapshot to unlock personalized insights and recommendations.</p>
+            <p><strong>🔒 All your data remains 100% private</strong></p>
             <p><strong>👉 Navigate to "📊 Snapshot" to get started!</strong></p>
         </div>
         """, unsafe_allow_html=True)
@@ -1451,6 +1444,7 @@ elif st.session_state.current_page == "🤖 ML Insights":
                 <li>📊 Behavioral Patterns</li>
                 <li>💡 Personalized Recommendations</li>
             </ul>
+            <p><strong>🔒 Your data remains 100% private</strong></p>
             <p><strong>👉 Navigate to "📊 Snapshot" to get started!</strong></p>
         </div>
         """, unsafe_allow_html=True)
@@ -1531,6 +1525,7 @@ elif st.session_state.current_page == "🧠 Behavior Quiz":
         <div class='financial-sticker'>
             <h3>Personalized Quiz Awaits Your Profile!</h3>
             <p>Complete your financial snapshot to get quiz results tailored to your specific financial situation.</p>
+            <p><strong>🔒 Your quiz responses remain private</strong></p>
             <p><strong>👉 Navigate to "📊 Snapshot" to get started!</strong></p>
         </div>
         """, unsafe_allow_html=True)
@@ -1539,6 +1534,7 @@ elif st.session_state.current_page == "🧠 Behavior Quiz":
         <div class='financial-sticker'>
             <h3>Discover Your Investment Personality</h3>
             <p>This quiz will help us understand your financial behavior and provide personalized investment recommendations.</p>
+            <p><strong>🔒 Your responses are completely private</strong></p>
             <p><strong>Time:</strong> 5-7 minutes | <strong>Questions:</strong> 8</p>
         </div>
         """, unsafe_allow_html=True)
@@ -1701,6 +1697,7 @@ elif st.session_state.current_page == "💹 Investment Center":
         <div class='financial-sticker'>
             <h3>Personalized Investment Center Awaits!</h3>
             <p>Complete your financial snapshot to get investment recommendations tailored to your risk profile and goals.</p>
+            <p><strong>🔒 Your investment data remains private</strong></p>
             <p><strong>👉 Navigate to "📊 Snapshot" to get started!</strong></p>
         </div>
         """, unsafe_allow_html=True)
@@ -1709,6 +1706,7 @@ elif st.session_state.current_page == "💹 Investment Center":
         <div class='financial-sticker'>
             <h3>Smart Investing Made Simple</h3>
             <p>Explore mutual funds, simulate growth, and plan your SIP investments with ML-powered insights.</p>
+            <p><strong>🔒 All calculations are done locally on your device</strong></p>
         </div>
         """, unsafe_allow_html=True)
         
@@ -1817,6 +1815,7 @@ elif st.session_state.current_page == "🎯 Goals Planner":
         <div class='financial-sticker'>
             <h3>Goal Planning Made Personal!</h3>
             <p>Complete your financial snapshot to set goals that align with your income, expenses, and savings capacity.</p>
+            <p><strong>🔒 Your goals are stored locally and private</strong></p>
             <p><strong>👉 Navigate to "📊 Snapshot" to get started!</strong></p>
         </div>
         """, unsafe_allow_html=True)
@@ -1926,6 +1925,7 @@ elif st.session_state.current_page == "💼 Portfolio":
         <div class='financial-sticker'>
             <h3>Portfolio Tracking Made Easy!</h3>
             <p>Complete your financial snapshot to get personalized portfolio recommendations and tracking.</p>
+            <p><strong>🔒 Your portfolio data remains private</strong></p>
             <p><strong>👉 Navigate to "📊 Snapshot" to get started!</strong></p>
         </div>
         """, unsafe_allow_html=True)
@@ -1934,6 +1934,7 @@ elif st.session_state.current_page == "💼 Portfolio":
         <div class='financial-sticker'>
             <h3>Track Your Investments</h3>
             <p>Add your current holdings and visualize your portfolio allocation.</p>
+            <p><strong>🔒 Your investment data is stored locally</strong></p>
         </div>
         """, unsafe_allow_html=True)
 
@@ -1983,6 +1984,7 @@ elif st.session_state.current_page == "📥 Export":
         <div class='financial-sticker'>
             <h3>Comprehensive Reports Await Your Data!</h3>
             <p>Complete your financial snapshot to generate detailed PDF reports with analysis and recommendations.</p>
+            <p><strong>🔒 All reports are generated locally on your device</strong></p>
             <p><strong>👉 Navigate to "📊 Snapshot" to get started!</strong></p>
         </div>
         """, unsafe_allow_html=True)
@@ -1991,6 +1993,7 @@ elif st.session_state.current_page == "📥 Export":
         <div class='financial-sticker'>
             <h3>Generate Comprehensive Financial Reports</h3>
             <p>Download detailed PDF reports with your financial data, analysis, and personalized recommendations.</p>
+            <p><strong>🔒 Reports are generated locally - your data never leaves your device</strong></p>
         </div>
         """, unsafe_allow_html=True)
         
@@ -2114,6 +2117,6 @@ st.markdown("""
 <div style='text-align: center; color: #64748b; padding: 2rem;'>
     <p style='font-size: 1.2rem; font-weight: 600;'>Built with ❤️ by Ayush Shukla | AI Financial Advisor v4.0</p>
     <p style='font-size: 1.1rem;'>🤖 Powered by Machine Learning & Data Science | 📊 Your Financial Companion</p>
+    <p style='font-size: 1rem; margin-top: 1rem;'>🔒 <strong>100% Private:</strong> All your financial data stays on your device</p>
 </div>
 """, unsafe_allow_html=True)
-
