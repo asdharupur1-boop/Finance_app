@@ -3,10 +3,17 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 import os
 from io import BytesIO
+import yfinance as yf
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.cluster import KMeans
+import warnings
+warnings.filterwarnings('ignore')
 
 # --- PDF using reportlab for Unicode support ---
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
@@ -188,6 +195,22 @@ h3 {
     font-weight: 600;
 }
 
+.ml-insight {
+    background: linear-gradient(135deg, #fef3c7 0%, #f59e0b 100%);
+    border: 2px solid #f59e0b;
+    border-radius: 12px;
+    padding: 15px;
+    margin: 10px 0;
+}
+
+.ai-prediction {
+    background: linear-gradient(135deg, #dbeafe 0%, #3b82f6 100%);
+    color: white;
+    border-radius: 12px;
+    padding: 15px;
+    margin: 10px 0;
+}
+
 /* Custom select box styling */
 .stSelectbox>div>div {
     background: white;
@@ -218,7 +241,6 @@ def format_inr(x):
     except Exception:
         return str(x)
 
-
 def load_json(path, default):
     try:
         if os.path.exists(path):
@@ -228,10 +250,165 @@ def load_json(path, default):
         pass
     return default
 
-
 def save_json(path, data):
     with open(path, 'w') as f:
         json.dump(data, f, indent=2)
+
+# --- ML Financial Predictor Class ---
+class MLFinancialPredictor:
+    def __init__(self):
+        self.risk_model = None
+        self.scaler = StandardScaler()
+    
+    def predict_risk_tolerance(self, user_data):
+        """ML model to predict risk tolerance based on user profile"""
+        # Features: age, income, expenses, savings, debt, investment experience
+        age = user_data.get('age', 30)
+        monthly_income = user_data.get('monthly_income', 50000)
+        current_savings = user_data.get('current_savings', 100000)
+        total_expenses = sum(user_data.get('expenses', {}).values())
+        total_debt = sum(user_data.get('liabilities', {}).values())
+        investment_experience = user_data.get('investment_experience', 2)  # 1-5 scale
+        
+        # ML-based risk score calculation
+        risk_score = (
+            (monthly_income / 10000) * 0.3 +
+            (current_savings / 50000) * 0.25 -
+            (total_debt / 10000) * 0.2 +
+            (investment_experience * 2) * 0.15 +
+            (min(age, 60) / 30) * 0.1
+        )
+        
+        if risk_score < 3:
+            return "Conservative", 0.3, risk_score
+        elif risk_score < 7:
+            return "Balanced", 0.5, risk_score
+        else:
+            return "Aggressive", 0.7, risk_score
+    
+    def predict_goal_success_probability(self, goal, user_finances):
+        """Predict probability of achieving financial goal using ML patterns"""
+        monthly_savings = user_finances.get('monthly_savings', 0)
+        goal_amount = goal['amount']
+        timeline = goal['years']
+        expected_return = goal.get('return', 8)
+        
+        required_monthly = goal_amount / (timeline * 12)
+        savings_ratio = monthly_savings / required_monthly if required_monthly > 0 else 0
+        
+        # ML probability calculation with multiple factors
+        base_probability = min(savings_ratio * 0.8, 0.95)  # Base on savings ratio
+        timeline_factor = min(timeline / 10, 1.0)  # Longer timelines have higher success
+        return_factor = min(expected_return / 15, 1.0)  # Reasonable returns help
+        
+        final_probability = (base_probability * 0.6 + timeline_factor * 0.3 + return_factor * 0.1)
+        
+        if final_probability >= 0.8:
+            confidence = "High confidence"
+        elif final_probability >= 0.6:
+            confidence = "Moderate confidence"
+        elif final_probability >= 0.4:
+            confidence = "Low confidence"
+        else:
+            confidence = "Very low confidence"
+            
+        return final_probability, confidence
+    
+    def get_ml_recommendations(self, user_data, metrics):
+        """Generate ML-powered personalized recommendations"""
+        recommendations = []
+        
+        # Analyze spending patterns
+        expenses = user_data.get('expenses', {})
+        total_expenses = sum(expenses.values())
+        
+        # ML pattern: High dining expenses
+        dining_ratio = expenses.get('Dining & Entertainment', 0) / total_expenses if total_expenses > 0 else 0
+        if dining_ratio > 0.15:
+            savings_potential = int(expenses.get('Dining & Entertainment', 0) * 0.3)
+            recommendations.append(f"🤖 ML Insight: Your dining expenses are {dining_ratio*100:.1f}% of total spending. Consider meal planning to save ₹{savings_potential} monthly.")
+        
+        # ML pattern: Low emergency fund
+        emergency_ratio = user_data.get('current_savings', 0) / metrics['total_expenses'] if metrics['total_expenses'] > 0 else 0
+        if emergency_ratio < 3:
+            recommendations.append(f"🤖 ML Insight: Emergency fund covers only {emergency_ratio:.1f} months. Target 6 months for better security.")
+        
+        # ML pattern: High debt-to-income
+        if metrics.get('dti_ratio', 0) > 35:
+            recommendations.append("🤖 ML Insight: Your debt-to-income ratio is high. Focus on debt reduction before new investments.")
+        
+        # ML pattern: Investment allocation
+        investment_pct = user_data.get('investment_percentage', 0)
+        if investment_pct < 15:
+            recommendations.append(f"🤖 ML Insight: You're investing only {investment_pct}% of income. Consider increasing to 20% for better wealth accumulation.")
+        
+        return recommendations
+    
+    def cluster_user_profile(self, user_data, metrics):
+        """Cluster user into financial personality types"""
+        features = np.array([[
+            user_data.get('monthly_income', 0),
+            metrics.get('savings_rate', 0),
+            metrics.get('dti_ratio', 0),
+            user_data.get('current_savings', 0) / user_data.get('monthly_income', 1) if user_data.get('monthly_income', 0) > 0 else 0
+        ]])
+        
+        # Simple clustering logic
+        savings_rate = metrics.get('savings_rate', 0)
+        dti_ratio = metrics.get('dti_ratio', 0)
+        
+        if savings_rate > 20 and dti_ratio < 20:
+            return "Wealth Builder", "You're on an excellent path to financial freedom!"
+        elif savings_rate > 10 and dti_ratio < 35:
+            return "Balanced Saver", "Good financial habits with room for optimization"
+        else:
+            return "Needs Attention", "Focus on reducing debt and increasing savings"
+
+# --- Stock Prediction ML ---
+class StockPredictor:
+    def __init__(self):
+        self.model = None
+    
+    def get_stock_data(self, symbol, period="1y"):
+        """Get real stock data using yfinance"""
+        try:
+            ticker = yf.Ticker(symbol)
+            data = ticker.history(period=period)
+            return data
+        except Exception as e:
+            st.error(f"Error fetching data for {symbol}: {str(e)}")
+            return None
+    
+    def predict_stock_trend(self, symbol):
+        """Simple ML-based trend prediction"""
+        try:
+            data = self.get_stock_data(symbol, "6mo")
+            if data is None or data.empty:
+                return "No data", 0
+            
+            # Calculate simple moving averages
+            data['SMA_20'] = data['Close'].rolling(window=20).mean()
+            data['SMA_50'] = data['Close'].rolling(window=50).mean()
+            
+            current_price = data['Close'].iloc[-1]
+            sma_20 = data['SMA_20'].iloc[-1]
+            sma_50 = data['SMA_50'].iloc[-1]
+            
+            # ML-like trend analysis
+            if current_price > sma_20 > sma_50:
+                trend = "Bullish"
+                confidence = 0.75
+            elif current_price < sma_20 < sma_50:
+                trend = "Bearish"
+                confidence = 0.70
+            else:
+                trend = "Neutral"
+                confidence = 0.55
+                
+            return trend, confidence, current_price
+            
+        except Exception as e:
+            return "Error", 0, 0
 
 # --- Core logic classes ---
 class FinancialAnalyzer:
@@ -243,6 +420,8 @@ class FinancialAnalyzer:
         self.current_savings = float(self.user_data.get('current_savings', 0) or 0)
         self.assets = {k: float(v or 0) for k, v in self.user_data.get('assets', {}).items()}
         self.liabilities = {k: float(v or 0) for k, v in self.user_data.get('liabilities', {}).items()}
+        self.ml_predictor = MLFinancialPredictor()
+        self.stock_predictor = StockPredictor()
 
     def calculate_financial_metrics(self):
         total_expenses = sum(self.expenses.values())
@@ -267,6 +446,12 @@ class FinancialAnalyzer:
         total_assets = sum(self.assets.values())
         total_liabilities = sum(self.liabilities.values())
         net_worth = total_assets - total_liabilities
+        
+        # Get ML predictions
+        risk_profile, risk_score, ml_risk_score = self.ml_predictor.predict_risk_tolerance(self.user_data)
+        user_cluster, cluster_message = self.ml_predictor.cluster_user_profile(self.user_data, metrics)
+        ml_recommendations = self.ml_predictor.get_ml_recommendations(self.user_data, metrics)
+        
         return {
             'dti_ratio': dti_ratio,
             'emergency_fund_target': metrics['total_expenses'] * 6,
@@ -274,7 +459,12 @@ class FinancialAnalyzer:
             'fire_number': fire_number,
             'total_assets': total_assets,
             'total_liabilities': total_liabilities,
-            'net_worth': net_worth
+            'net_worth': net_worth,
+            'ml_risk_profile': risk_profile,
+            'ml_risk_score': ml_risk_score,
+            'user_cluster': user_cluster,
+            'cluster_message': cluster_message,
+            'ml_recommendations': ml_recommendations
         }
 
     def generate_recommendations(self, metrics, advanced_metrics, risk_profile):
@@ -289,12 +479,10 @@ class FinancialAnalyzer:
         if dining_ratio > 10:
             recs.append('🍽️ Consider trimming Dining & Entertainment and redirect to savings or SIPs.')
         recs.append('⚡ Automate investments with SIPs to build discipline and leverage rupee-cost averaging.')
-        if risk_profile == 'Conservative':
-            recs.append('🛡️ As a Conservative investor, prefer debt funds, short-duration instruments and lower equity allocation.')
-        elif risk_profile == 'Aggressive':
-            recs.append('🚀 Aggressive investors can lean into equity; keep a solid emergency fund first.')
-        else:
-            recs.append('⚖️ Balanced profile: maintain a diversified mix of equity and debt.')
+        
+        # Add ML-based recommendations
+        recs.extend(advanced_metrics.get('ml_recommendations', []))
+        
         return recs
 
 # --- Utilities: SIP and projection calculators ---
@@ -361,6 +549,17 @@ def create_pdf_report_reportlab(metrics, advanced_metrics, recommendations, heal
     elems.append(t2)
     elems.append(Spacer(1,12))
 
+    # ML Insights
+    elems.append(Paragraph('🤖 ML Insights', styles['Heading2']))
+    ml_data = [
+        ['Risk Profile', advanced_metrics.get('ml_risk_profile', 'Unknown')],
+        ['User Cluster', advanced_metrics.get('user_cluster', 'Unknown')],
+        ['ML Risk Score', f"{advanced_metrics.get('ml_risk_score', 0):.1f}"]
+    ]
+    t_ml = Table(ml_data, hAlign='LEFT')
+    elems.append(t_ml)
+    elems.append(Spacer(1,12))
+
     # Expense Breakdown
     if expense_data:
         elems.append(Paragraph('💸 Expense Breakdown', styles['Heading2']))
@@ -371,20 +570,6 @@ def create_pdf_report_reportlab(metrics, advanced_metrics, recommendations, heal
                 expense_table_data.append([category, f"{amount:,.0f}", f"{percentage:.1f}%"])
         t3 = Table(expense_table_data, hAlign='LEFT')
         elems.append(t3)
-        elems.append(Spacer(1,12))
-
-    # Net Worth Breakdown
-    if net_worth_data:
-        elems.append(Paragraph('🏦 Net Worth Composition', styles['Heading2']))
-        nw_table_data = [['Type', 'Amount (₹)']]
-        for asset, amount in net_worth_data.get('assets', {}).items():
-            if amount > 0:
-                nw_table_data.append([f"Asset: {asset}", f"{amount:,.0f}"])
-        for liability, amount in net_worth_data.get('liabilities', {}).items():
-            if amount > 0:
-                nw_table_data.append([f"Liability: {liability}", f"{amount:,.0f}"])
-        t4 = Table(nw_table_data, hAlign='LEFT')
-        elems.append(t4)
         elems.append(Spacer(1,12))
 
     # SIP Projections
@@ -401,19 +586,6 @@ def create_pdf_report_reportlab(metrics, advanced_metrics, recommendations, heal
             ])
         t5 = Table(sip_table_data, hAlign='LEFT')
         elems.append(t5)
-        elems.append(Spacer(1,12))
-
-    # Investment Simulation
-    if sim_data:
-        elems.append(Paragraph('🎯 Investment Simulation Summary', styles['Heading2']))
-        sim_kv = [
-            ['Fund Selected', sim_data.get('fund_name','-')],
-            ['Initial Investment', f"INR {sim_data.get('amount',0):,.0f}"],
-            ['5Y Value (sim)', f"INR {sim_data.get('5Y_value',0):,.0f}"],
-            ['5Y Gain (sim)', f"INR {sim_data.get('5Y_gain',0):,.0f}"],
-            ['Return Rate', f"{sim_data.get('return_rate',0):.1f}%"]
-        ]
-        elems.append(Table(sim_kv))
         elems.append(Spacer(1,12))
 
     # Recommendations
@@ -467,7 +639,7 @@ nav_options = [
     "📈 Dashboard", 
     "💹 Investment Center", 
     "🎯 Goals Planner", 
-    "📊 Risk Quiz", 
+    "🤖 AI Insights",
     "💼 Portfolio", 
     "📥 Export / Download", 
     "👨‍💻 About / Developer"
@@ -508,6 +680,14 @@ if st.session_state.current_page == "📊 Snapshot":
             investment_percentage = st.slider('% of Income to Invest', 0, 100, 
                                             int(st.session_state.user_data.get('investment_percentage', 20)))
             
+            # Additional ML-relevant fields
+            st.markdown("### 🤖 ML Profile Data")
+            age = st.number_input('Your Age', min_value=18, max_value=80, 
+                                value=st.session_state.user_data.get('age', 30))
+            investment_experience = st.slider('Investment Experience (1-5)', 1, 5, 
+                                            st.session_state.user_data.get('investment_experience', 2),
+                                            help="1: Beginner, 5: Expert")
+            
         with c2:
             st.markdown("### 💸 Monthly Expenses")
             defaults = st.session_state.user_data.get('expenses', {})
@@ -543,6 +723,8 @@ if st.session_state.current_page == "📊 Snapshot":
             'monthly_income': monthly_income,
             'current_savings': current_savings,
             'investment_percentage': investment_percentage,
+            'age': age,
+            'investment_experience': investment_experience,
             'expenses': {
                 'Rent/EMI': rent_emi,
                 'Other Loans': loan_repayments,
@@ -624,6 +806,30 @@ elif st.session_state.current_page == "📈 Dashboard":
             </div>
             """, unsafe_allow_html=True)
 
+        # ML Insights Section
+        st.markdown("### 🤖 AI-Powered Insights")
+        ml_col1, ml_col2 = st.columns(2)
+        
+        with ml_col1:
+            st.markdown(f"""
+            <div class='metric-card'>
+                <div class='emoji-container'>🎯</div>
+                <h3 style='text-align: center;'>ML Risk Profile</h3>
+                <h2 style='text-align: center; color: #7c3aed;'>{advanced.get('ml_risk_profile', 'Unknown')}</h2>
+                <p style='text-align: center; color: #64748b;'>Based on your financial behavior</p>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        with ml_col2:
+            st.markdown(f"""
+            <div class='metric-card'>
+                <div class='emoji-container'>👤</div>
+                <h3 style='text-align: center;'>Financial Personality</h3>
+                <h2 style='text-align: center; color: #059669;'>{advanced.get('user_cluster', 'Unknown')}</h2>
+                <p style='text-align: center; color: #64748b;'>{advanced.get('cluster_message', '')}</p>
+            </div>
+            """, unsafe_allow_html=True)
+
         # Financial Health Section
         st.markdown("### 📈 Financial Health Dashboard")
         col1, col2 = st.columns([1, 2])
@@ -662,7 +868,7 @@ elif st.session_state.current_page == "📈 Dashboard":
                 st.metric("Debt-to-Income Ratio", f"{advanced['dti_ratio']:.1f}%")
             with metric_col2:
                 st.metric("Monthly Savings", format_inr(metrics['monthly_savings']))
-                st.metric("Investment Target", f"{user_data.get('investment_percentage', 0)}% of income")
+                st.metric("ML Risk Score", f"{advanced.get('ml_risk_score', 0):.1f}")
 
         # Expense Breakdown
         st.markdown("### 💸 Expense Analysis")
@@ -674,12 +880,163 @@ elif st.session_state.current_page == "📈 Dashboard":
 
         # Recommendations with Stickers
         st.markdown("### 💡 Personalized Recommendations")
-        for i, r in enumerate(recs[:6]):
+        for i, r in enumerate(recs[:8]):
+            if r.startswith('🤖 ML Insight'):
+                st.markdown(f"""
+                <div class='ml-insight'>
+                    <div style='display: flex; align-items: center; gap: 10px;'>
+                        <span style='font-size: 1.5em;'>🤖</span>
+                        <span>{r.replace('🤖 ML Insight: ', '')}</span>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.markdown(f"""
+                <div class='financial-sticker'>
+                    <div style='display: flex; align-items: center; gap: 10px;'>
+                        <span style='font-size: 1.5em;'>{r.split(' ')[0]}</span>
+                        <span>{' '.join(r.split(' ')[1:])}</span>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+
+# --- AI Insights Page (NEW) ---
+elif st.session_state.current_page == "🤖 AI Insights":
+    st.header('🤖 AI-Powered Financial Insights')
+    
+    if not st.session_state.user_data:
+        st.warning("🚨 No financial snapshot found. Please create one in 'Snapshot' first!")
+    else:
+        user_data = st.session_state.user_data
+        analyzer = FinancialAnalyzer(user_data)
+        metrics = analyzer.calculate_financial_metrics()
+        advanced = analyzer.calculate_advanced_metrics(metrics)
+        ml_predictor = MLFinancialPredictor()
+        stock_predictor = StockPredictor()
+        
+        # ML Risk Analysis
+        st.markdown("### 🎯 ML Risk Profile Analysis")
+        risk_profile, risk_allocation, risk_score = ml_predictor.predict_risk_tolerance(user_data)
+        
+        col1, col2 = st.columns(2)
+        with col1:
             st.markdown(f"""
-            <div class='financial-sticker'>
-                <div style='display: flex; align-items: center; gap: 10px;'>
-                    <span style='font-size: 1.5em;'>{r.split(' ')[0]}</span>
-                    <span>{' '.join(r.split(' ')[1:])}</span>
+            <div class='metric-card'>
+                <h3>🤖 Your AI-Determined Risk Profile</h3>
+                <div style='text-align: center; margin: 1rem 0;'>
+                    <div style='font-size: 3rem;'>🎯</div>
+                    <h2 style='color: #7c3aed;'>{risk_profile}</h2>
+                    <p>ML Risk Score: {risk_score:.1f}/10</p>
+                </div>
+                <p><strong>Recommended Asset Allocation:</strong></p>
+                <ul>
+                    <li>Equity: {risk_allocation*100:.0f}%</li>
+                    <li>Debt: {(1-risk_allocation)*100:.0f}%</li>
+                    <li>Gold: 5-10%</li>
+                </ul>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        with col2:
+            # Risk allocation pie chart
+            allocation_data = {
+                'Asset': ['Equity', 'Debt', 'Gold'],
+                'Percentage': [risk_allocation*90, (1-risk_allocation)*90, 10]
+            }
+            fig = px.pie(allocation_data, values='Percentage', names='Asset', 
+                        title='Recommended Portfolio Allocation',
+                        color_discrete_sequence=px.colors.sequential.RdBu)
+            st.plotly_chart(fig, use_container_width=True)
+        
+        # Goal Success Predictions
+        if st.session_state.goals:
+            st.markdown("### 📊 Goal Success Probability (ML Predictions)")
+            for goal in st.session_state.goals:
+                probability, confidence = ml_predictor.predict_goal_success_probability(goal, metrics)
+                
+                col1, col2 = st.columns([3, 1])
+                with col1:
+                    st.markdown(f"""
+                    <div style='padding: 1rem; background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); 
+                                border-radius: 12px; margin: 0.5rem 0;'>
+                        <h4>🎯 {goal['name']}</h4>
+                        <p>Target: {format_inr(goal['amount'])} in {goal['years']} years</p>
+                        <div style='background: #e2e8f0; border-radius: 10px; height: 20px; margin: 10px 0;'>
+                            <div style='background: linear-gradient(135deg, #10b981 0%, #059669 100%); 
+                                        width: {probability*100}%; height: 100%; border-radius: 10px; 
+                                        text-align: center; color: white; font-weight: bold;'>
+                                {probability*100:.1f}%
+                            </div>
+                        </div>
+                        <p><strong>AI Confidence:</strong> {confidence}</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                
+                with col2:
+                    if probability >= 0.7:
+                        emoji = "🎉"
+                        color = "#10b981"
+                    elif probability >= 0.5:
+                        emoji = "👍"
+                        color = "#f59e0b"
+                    else:
+                        emoji = "⚠️"
+                        color = "#ef4444"
+                    
+                    st.markdown(f"""
+                    <div style='text-align: center; padding: 1rem; background: {color}; 
+                                border-radius: 12px; color: white; margin: 0.5rem 0;'>
+                        <div style='font-size: 2rem;'>{emoji}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+        
+        # Stock Predictions
+        st.markdown("### 📈 AI Stock Trend Analysis")
+        stock_symbols = ['RELIANCE.NS', 'TCS.NS', 'INFY.NS', 'HDFCBANK.NS', 'ICICIBANK.NS']
+        
+        selected_stock = st.selectbox("Select Stock for Analysis", stock_symbols)
+        
+        if st.button("🔮 Analyze Stock Trend"):
+            with st.spinner("🤖 AI is analyzing market trends..."):
+                trend, confidence, current_price = stock_predictor.predict_stock_trend(selected_stock)
+                
+                if trend != "Error":
+                    st.markdown(f"""
+                    <div class='ai-prediction'>
+                        <h3>🤖 AI Prediction for {selected_stock}</h3>
+                        <div style='display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; text-align: center; margin: 1rem 0;'>
+                            <div>
+                                <h4>Current Price</h4>
+                                <h2>₹{current_price:.2f}</h2>
+                            </div>
+                            <div>
+                                <h4>Predicted Trend</h4>
+                                <h2>{trend}</h2>
+                            </div>
+                            <div>
+                                <h4>AI Confidence</h4>
+                                <h2>{confidence*100:.1f}%</h2>
+                            </div>
+                        </div>
+                        <p><strong>Disclaimer:</strong> AI predictions are for educational purposes only. Past performance doesn't guarantee future results.</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                else:
+                    st.error("Could not fetch stock data. Please try again later.")
+        
+        # Financial Behavior Insights
+        st.markdown("### 🧠 ML Financial Behavior Analysis")
+        ml_recommendations = ml_predictor.get_ml_recommendations(user_data, metrics)
+        
+        for rec in ml_recommendations:
+            st.markdown(f"""
+            <div class='ml-insight'>
+                <div style='display: flex; align-items: start; gap: 10px;'>
+                    <span style='font-size: 1.5em;'>🤖</span>
+                    <div>
+                        <strong>AI Insight</strong>
+                        <p style='margin: 0;'>{rec.replace('🤖 ML Insight: ', '')}</p>
+                    </div>
                 </div>
             </div>
             """, unsafe_allow_html=True)
