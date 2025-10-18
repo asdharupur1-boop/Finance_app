@@ -240,7 +240,7 @@ class FinancialAnalyzer:
         self.monthly_income = float(self.user_data.get('monthly_income', 0) or 0)
         self.expenses = {k: float(v or 0) for k, v in self.user_data.get('expenses', {}).items()}
         self.investment_pct = float(self.user_data.get('investment_percentage', 0) or 0)
-        self.current_savings = float(self.user_data.get('current_savings', 0) or 0)  # FIXED: Changed user_state to user_data
+        self.current_savings = float(self.user_data.get('current_savings', 0) or 0)
         self.assets = {k: float(v or 0) for k, v in self.user_data.get('assets', {}).items()}
         self.liabilities = {k: float(v or 0) for k, v in self.user_data.get('liabilities', {}).items()}
 
@@ -784,51 +784,209 @@ elif st.session_state.current_page == "💹 Investment Center":
 # --- Goals Planner Page ---
 elif st.session_state.current_page == "🎯 Goals Planner":
     st.header('🎯 Goals & SIP Planner')
+    
+    # Privacy Notice
+    st.markdown("""
+    <div class='financial-sticker' style='background: linear-gradient(135deg, #fef3c7 0%, #f59e0b 100%);'>
+        <div class='emoji-container'>🔒</div>
+        <h3 style='color: #92400e;'>Your Goals are Private!</h3>
+        <p style='color: #92400e;'>All your financial goals are stored locally and only visible to you.</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
     if 'goals' not in st.session_state:
         st.session_state.goals = []
 
+    # Add Goal Form with Enhanced UI
     with st.form('goal_add'):
-        g_name = st.text_input('Goal Name')
-        g_amount = st.number_input('Target Amount (₹)', min_value=0.0, value=500000.0, step=1000.0)
-        g_years = st.number_input('Years to Achieve', min_value=1, value=5)
-        g_return = st.slider('Expected Annual Return (%)', 0, 20, 8)
-        add = st.form_submit_button('➕ Add Goal')
+        st.markdown("### 🎯 Add New Financial Goal")
+        
+        goal_cols = st.columns([2, 1, 1])
+        with goal_cols[0]:
+            g_name = st.text_input('Goal Name', placeholder='e.g., Dream House, Car, Vacation')
+        with goal_cols[1]:
+            g_amount = st.number_input('Target Amount (₹)', min_value=0.0, value=500000.0, step=1000.0)
+        with goal_cols[2]:
+            g_years = st.number_input('Years to Achieve', min_value=1, value=5)
+        
+        g_return = st.slider('Expected Annual Return (%)', 0, 20, 8, 
+                           help='Conservative: 6-8%, Moderate: 8-12%, Aggressive: 12-15%+')
+        
+        add = st.form_submit_button('🚀 Add Goal')
         
     if add and g_name:
-        st.session_state.goals.append({'name':g_name,'amount':g_amount,'years':g_years,'return':g_return})
+        new_goal = {
+            'name': g_name,
+            'amount': g_amount,
+            'years': g_years,
+            'return': g_return,
+            'created_date': datetime.now().strftime('%Y-%m-%d')
+        }
+        st.session_state.goals.append(new_goal)
         save_json(GOALS_FILE, st.session_state.goals)
-        st.success('🎯 Goal added successfully!')
+        st.success(f'🎯 Goal "{g_name}" added successfully!')
+        st.balloons()
 
     if st.session_state.goals:
-        st.markdown("### 📋 Your Financial Goals")
-        df = pd.DataFrame(st.session_state.goals)
-        st.dataframe(df, use_container_width=True)
+        # Goals Overview
+        total_goals_value = sum(g['amount'] for g in st.session_state.goals)
+        avg_years = np.mean([g['years'] for g in st.session_state.goals])
         
-        st.markdown('### 💰 Required Monthly SIP per Goal')
-        goals_data = []
-        for g in st.session_state.goals:
-            r = g['return']/100/12
-            n = g['years']*12
-            target = g['amount']
-            if r>0:
+        st.markdown("### 📊 Goals Overview")
+        overview_cols = st.columns(3)
+        with overview_cols[0]:
+            st.markdown(f"""
+            <div class='metric-card'>
+                <div class='emoji-container'>🎯</div>
+                <h3 style='text-align: center;'>Total Goals</h3>
+                <h2 style='text-align: center; color: #7c3aed;'>{len(st.session_state.goals)}</h2>
+            </div>
+            """, unsafe_allow_html=True)
+        with overview_cols[1]:
+            st.markdown(f"""
+            <div class='metric-card'>
+                <div class='emoji-container'>💰</div>
+                <h3 style='text-align: center;'>Total Target</h3>
+                <h2 style='text-align: center; color: #059669;'>{format_inr(total_goals_value)}</h2>
+            </div>
+            """, unsafe_allow_html=True)
+        with overview_cols[2]:
+            st.markdown(f"""
+            <div class='metric-card'>
+                <div class='emoji-container'>📅</div>
+                <h3 style='text-align: center;'>Avg Timeline</h3>
+                <h2 style='text-align: center; color: #dc2626;'>{avg_years:.1f} years</h2>
+            </div>
+            """, unsafe_allow_html=True)
+
+        # Goals List with Progress
+        st.markdown("### 📋 Your Financial Goals")
+        for i, goal in enumerate(st.session_state.goals):
+            # Calculate required SIP
+            r = goal['return']/100/12
+            n = goal['years']*12
+            target = goal['amount']
+            if r > 0:
                 sip = target * (r / ((1+r)**n - 1))
             else:
                 sip = target / n
-                
-            goals_data.append({
-                'Goal': g['name'],
-                'Target': format_inr(target),
-                'Years': g['years'],
-                'Monthly SIP': format_inr(sip)
-            })
             
+            total_investment = sip * n
+            potential_growth = target - total_investment
+            
+            with st.container():
+                col1, col2, col3 = st.columns([3, 2, 1])
+                
+                with col1:
+                    st.markdown(f"""
+                    <div style='padding: 1rem; background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); 
+                                border-radius: 12px; border-left: 4px solid #0369a1; margin: 0.5rem 0;'>
+                        <h4 style='margin: 0; color: #0c4a6e;'>🎯 {goal['name']}</h4>
+                        <p style='margin: 0.25rem 0; color: #475569;'>
+                            💰 Target: <strong>{format_inr(goal['amount'])}</strong> | 
+                            📅 Timeline: <strong>{goal['years']} years</strong> | 
+                            📈 Expected Return: <strong>{goal['return']}%</strong>
+                        </p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                
+                with col2:
+                    st.markdown(f"""
+                    <div style='padding: 1rem; background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); 
+                                border-radius: 12px; border-left: 4px solid #16a34a; margin: 0.5rem 0;'>
+                        <p style='margin: 0; color: #166534; font-weight: 600;'>
+                            💸 Monthly SIP: {format_inr(sip)}
+                        </p>
+                        <p style='margin: 0; color: #15803d; font-size: 0.9em;'>
+                            Total Investment: {format_inr(total_investment)}
+                        </p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                
+                with col3:
+                    if st.button('🗑️', key=f'delete_{i}', help='Delete this goal'):
+                        st.session_state.goals.pop(i)
+                        save_json(GOALS_FILE, st.session_state.goals)
+                        st.rerun()
+
+        # SIP Summary
+        st.markdown("### 💰 SIP Investment Summary")
+        
+        # Calculate all required SIPs
+        goal_sips = []
+        for goal in st.session_state.goals:
+            r = goal['return']/100/12
+            n = goal['years']*12
+            target = goal['amount']
+            if r > 0:
+                sip = target * (r / ((1+r)**n - 1))
+            else:
+                sip = target / n
+            goal_sips.append(sip)
+        
+        total_monthly_sip = sum(goal_sips)
+        
+        summary_cols = st.columns(2)
+        with summary_cols[0]:
             st.markdown(f"""
-            <div class='financial-sticker'>
-                <h4>🎯 {g['name']}</h4>
-                <p>Target: {format_inr(target)} in {g['years']} years</p>
-                <p><strong>Required SIP: {format_inr(sip)} / month</strong></p>
+            <div class='metric-card'>
+                <div class='emoji-container'>💸</div>
+                <h3 style='text-align: center;'>Total Monthly SIP</h3>
+                <h2 style='text-align: center; color: #dc2626;'>{format_inr(total_monthly_sip)}</h2>
+                <p style='text-align: center; color: #64748b;'>Required to achieve all goals</p>
             </div>
             """, unsafe_allow_html=True)
+        
+        with summary_cols[1]:
+            st.markdown(f"""
+            <div class='metric-card'>
+                <div class='emoji-container'>📊</div>
+                <h3 style='text-align: center;'>Annual Investment</h3>
+                <h2 style='text-align: center; color: #059669;'>{format_inr(total_monthly_sip * 12)}</h2>
+                <p style='text-align: center; color: #64748b;'>Yearly commitment needed</p>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        # Progress visualization
+        st.markdown("### 📈 Goal Progress Visualization")
+        goal_names = [g['name'] for g in st.session_state.goals]
+        goal_amounts = [g['amount'] for g in st.session_state.goals]
+        goal_sips = [sip for sip in goal_sips]
+        
+        fig = go.Figure()
+        fig.add_trace(go.Bar(name='Target Amount', x=goal_names, y=goal_amounts, 
+                            marker_color='#6366f1', text=[format_inr(amt) for amt in goal_amounts],
+                            textposition='auto'))
+        fig.add_trace(go.Bar(name='Monthly SIP', x=goal_names, y=goal_sips,
+                            marker_color='#10b981', text=[format_inr(sip) for sip in goal_sips],
+                            textposition='auto'))
+        
+        fig.update_layout(
+            title='Goals vs Required Monthly SIPs',
+            barmode='group',
+            showlegend=True,
+            height=400
+        )
+        st.plotly_chart(fig, use_container_width=True)
+        
+        # Clear all goals button
+        if st.button('🗑️ Clear All Goals', type='secondary'):
+            st.session_state.goals = []
+            save_json(GOALS_FILE, [])
+            st.rerun()
+    
+    else:
+        # Empty state with encouragement
+        st.markdown("""
+        <div class='financial-sticker' style='text-align: center; background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);'>
+            <div class='emoji-container'>🎯</div>
+            <h3 style='color: #0369a1;'>No Goals Set Yet!</h3>
+            <p style='color: #475569;'>Start by adding your first financial goal above. 🚀</p>
+            <p style='color: #64748b; font-size: 0.9em;'>
+                Examples: Down payment for house, children's education, retirement corpus, dream vacation
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
 
 # --- Risk Quiz Page ---
 elif st.session_state.current_page == "📊 Risk Quiz":
@@ -982,162 +1140,155 @@ elif st.session_state.current_page == "📥 Export / Download":
                 )
 
 # --- About / Developer Page ---
-# ... (keep all previous code the same until the About / Developer page section)
-
-# --- About / Developer Page ---
 elif st.session_state.current_page == "👨‍💻 About / Developer":
     st.header('👨‍💻 About the Developer')
     
-    # Developer Profile Section
-    col1, col2 = st.columns([1, 2])
+    # Enhanced Developer Profile with Better Visuals
+    st.markdown("""
+    <div style='text-align: center; padding: 2rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                border-radius: 20px; color: white; margin-bottom: 2rem;'>
+        <div style='font-size: 4rem; margin-bottom: 1rem;'>👨‍💻</div>
+        <h1 style='color: white; margin-bottom: 0.5rem;'>Ayush Shukla</h1>
+        <p style='font-size: 1.2em; opacity: 0.9; margin-bottom: 0;'>Full Stack Developer & FinTech Enthusiast</p>
+        <p style='opacity: 0.8;'>Building the future of financial technology</p>
+    </div>
+    """, unsafe_allow_html=True)
     
-    with col1:
-        st.markdown("""
-        <div style='text-align: center;'>
-            <div style='font-size: 4rem; margin-bottom: 1rem;'>👨‍💻</div>
-            <h2>Ayush Shukla</h2>
-            <p style='color: #64748b;'>Full Stack Developer & FinTech Enthusiast</p>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with col2:
-        st.markdown("""
-        <div class='metric-card'>
-            <h3>🚀 About Me</h3>
-            <p>Building intelligent financial solutions to empower better money management and financial literacy for everyone.</p>
-            <p>Passionate about creating tools that make complex financial concepts accessible and actionable.</p>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    # Social Links - Using Streamlit buttons instead of HTML
+    # Enhanced Social Links
     st.markdown("### 📱 Connect With Me")
     social_cols = st.columns(4)
     
     with social_cols[0]:
-        if st.button("🐙 GitHub", use_container_width=True):
-            st.markdown("[Visit GitHub Profile](https://github.com/ayushshukla)")
+        st.markdown("""
+        <div style='text-align: center; padding: 1rem; background: linear-gradient(135deg, #1f2937 0%, #374151 100%); 
+                    border-radius: 12px; color: white;'>
+            <div style='font-size: 2rem;'>🐙</div>
+            <p><strong>GitHub</strong></p>
+            <p style='font-size: 0.8em;'>ayushshukla</p>
+        </div>
+        """, unsafe_allow_html=True)
+        if st.button('Visit GitHub', key='github_btn', use_container_width=True):
+            st.markdown("[Open GitHub](https://github.com/ayushshukla)")
+    
     with social_cols[1]:
-        if st.button("💼 LinkedIn", use_container_width=True):
-            st.markdown("[Visit LinkedIn Profile](https://linkedin.com/in/ayushshukla)")
+        st.markdown("""
+        <div style='text-align: center; padding: 1rem; background: linear-gradient(135deg, #0369a1 0%, #0ea5e9 100%); 
+                    border-radius: 12px; color: white;'>
+            <div style='font-size: 2rem;'>💼</div>
+            <p><strong>LinkedIn</strong></p>
+            <p style='font-size: 0.8em;'>ayushshukla</p>
+        </div>
+        """, unsafe_allow_html=True)
+        if st.button('Visit LinkedIn', key='linkedin_btn', use_container_width=True):
+            st.markdown("[Open LinkedIn](https://linkedin.com/in/ayushshukla)")
+    
     with social_cols[2]:
-        if st.button("🐦 Twitter", use_container_width=True):
-            st.markdown("[Visit Twitter Profile](https://twitter.com/ayushshukla)")
+        st.markdown("""
+        <div style='text-align: center; padding: 1rem; background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%); 
+                    border-radius: 12px; color: white;'>
+            <div style='font-size: 2rem;'>📧</div>
+            <p><strong>Email</strong></p>
+            <p style='font-size: 0.8em;'>Contact Me</p>
+        </div>
+        """, unsafe_allow_html=True)
+        if st.button('Send Email', key='email_btn', use_container_width=True):
+            st.markdown("[Compose Email](mailto:ayush.shukla@example.com)")
+    
     with social_cols[3]:
-        if st.button("🌐 Portfolio", use_container_width=True):
-            st.markdown("[Visit Portfolio](https://ayushshukla.xyz)")
+        st.markdown("""
+        <div style='text-align: center; padding: 1rem; background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%); 
+                    border-radius: 12px; color: white;'>
+            <div style='font-size: 2rem;'>🌐</div>
+            <p><strong>Portfolio</strong></p>
+            <p style='font-size: 0.8em;'>ayushshukla.xyz</p>
+        </div>
+        """, unsafe_allow_html=True)
+        if st.button('Visit Portfolio', key='portfolio_btn', use_container_width=True):
+            st.markdown("[Open Portfolio](https://ayushshukla.xyz)")
     
+    # Enhanced App Features
     st.markdown("---")
+    st.markdown("### ✨ App Features & Technology")
     
-    # App Information
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.markdown("""
-        <div class='metric-card'>
-            <h3>📊 About This App</h3>
-            <p><strong>AI Financial Advisor</strong> is a comprehensive personal finance management tool that helps you:</p>
-            <ul>
-                <li>📈 Track income and expenses</li>
-                <li>💰 Plan investments and SIPs</li>
-                <li>🎯 Set and achieve financial goals</li>
-                <li>🛡️ Understand your risk profile</li>
-                <li>📄 Generate detailed financial reports</li>
-                <li>🏦 Monitor net worth growth</li>
-            </ul>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with col2:
-        st.markdown("""
-        <div class='metric-card'>
-            <h3>🛠️ Technology Stack</h3>
-            <p>Built with modern technologies for optimal performance and user experience:</p>
-            <ul>
-                <li><strong>Frontend:</strong> Streamlit, Plotly</li>
-                <li><strong>Backend:</strong> Python, Pandas, NumPy</li>
-                <li><strong>Data Visualization:</strong> Plotly Express, Graph Objects</li>
-                <li><strong>PDF Generation:</strong> ReportLab with Unicode support</li>
-                <li><strong>Data Storage:</strong> Secure JSON file system</li>
-                <li><strong>Styling:</strong> Custom CSS with gradients</li>
-            </ul>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    # Features Grid
-    st.markdown("### ✨ Key Features")
-    feature_cols = st.columns(3)
+    feature_cols = st.columns(2)
     
     with feature_cols[0]:
         st.markdown("""
-        <div class='financial-sticker'>
-            <div style='font-size: 2rem;'>📊</div>
-            <h4>Financial Snapshot</h4>
-            <p>Complete financial profile with income, expenses, assets, and liabilities</p>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        st.markdown("""
-        <div class='financial-sticker'>
-            <div style='font-size: 2rem;'>💹</div>
-            <h4>Investment Center</h4>
-            <p>Mutual fund analysis with lump sum and SIP calculators</p>
+        <div class='metric-card'>
+            <h3>🎯 What This App Does</h3>
+            <div style='display: grid; gap: 1rem; margin-top: 1rem;'>
+                <div style='display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem; background: #f1f5f9; border-radius: 8px;'>
+                    <span style='font-size: 1.5rem;'>📊</span>
+                    <div>
+                        <strong>Financial Snapshot</strong>
+                        <p style='margin: 0; font-size: 0.9em; color: #64748b;'>Complete financial profiling</p>
+                    </div>
+                </div>
+                <div style='display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem; background: #f1f5f9; border-radius: 8px;'>
+                    <span style='font-size: 1.5rem;'>💹</span>
+                    <div>
+                        <strong>Investment Planning</strong>
+                        <p style='margin: 0; font-size: 0.9em; color: #64748b;'>SIP & mutual fund analysis</p>
+                    </div>
+                </div>
+                <div style='display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem; background: #f1f5f9; border-radius: 8px;'>
+                    <span style='font-size: 1.5rem;'>🎯</span>
+                    <div>
+                        <strong>Goal Tracking</strong>
+                        <p style='margin: 0; font-size: 0.9em; color: #64748b;'>Set and achieve financial goals</p>
+                    </div>
+                </div>
+            </div>
         </div>
         """, unsafe_allow_html=True)
     
     with feature_cols[1]:
         st.markdown("""
-        <div class='financial-sticker'>
-            <div style='font-size: 2rem;'>🎯</div>
-            <h4>Goals Planning</h4>
-            <p>Set financial goals and calculate required SIP amounts</p>
+        <div class='metric-card'>
+            <h3>🛠️ Built With</h3>
+            <div style='display: grid; gap: 1rem; margin-top: 1rem;'>
+                <div style='display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #0369a1;'>
+                    <span style='font-size: 1.5rem;'>🐍</span>
+                    <div>
+                        <strong>Python & Streamlit</strong>
+                        <p style='margin: 0; font-size: 0.9em; color: #64748b;'>Backend & frontend framework</p>
+                    </div>
+                </div>
+                <div style='display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem; background: #f0fdf4; border-radius: 8px; border-left: 4px solid #16a34a;'>
+                    <span style='font-size: 1.5rem;'>📊</span>
+                    <div>
+                        <strong>Plotly & Pandas</strong>
+                        <p style='margin: 0; font-size: 0.9em; color: #64748b;'>Data visualization & analysis</p>
+                    </div>
+                </div>
+                <div style='display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem; background: #faf5ff; border-radius: 8px; border-left: 4px solid #7c3aed;'>
+                    <span style='font-size: 1.5rem;'>📄</span>
+                    <div>
+                        <strong>ReportLab</strong>
+                        <p style='margin: 0; font-size: 0.9em; color: #64748b;'>PDF report generation</p>
+                    </div>
+                </div>
+            </div>
         </div>
         """, unsafe_allow_html=True)
-        
-        st.markdown("""
-        <div class='financial-sticker'>
-            <div style='font-size: 2rem;'>📈</div>
-            <h4>Risk Assessment</h4>
-            <p>Personalized risk profile quiz and investment recommendations</p>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with feature_cols[2]:
-        st.markdown("""
-        <div class='financial-sticker'>
-            <div style='font-size: 2rem;'>💼</div>
-            <h4>Portfolio Manager</h4>
-            <p>Track and visualize your investment portfolio allocation</p>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        st.markdown("""
-        <div class='financial-sticker'>
-            <div style='font-size: 2rem;'>📥</div>
-            <h4>Export Reports</h4>
-            <p>Generate comprehensive PDF reports with all your financial data</p>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    # Contact Information
-    st.markdown("---")
-    st.markdown("""
-    <div class='metric-card' style='text-align: center;'>
-        <h3>📞 Get In Touch</h3>
-        <p>Have questions, suggestions, or want to collaborate on financial technology projects?</p>
-        <p>I'd love to hear from you!</p>
-        <p>📧 <strong>Email:</strong> ayush.shukla@example.com</p>
-        <p>💼 <strong>LinkedIn:</strong> linkedin.com/in/ayushshukla</p>
-        <p>🐙 <strong>GitHub:</strong> github.com/ayushshukla</p>
-    </div>
-    """, unsafe_allow_html=True)
     
     # Mission Statement
     st.markdown("""
-    <div class='financial-sticker' style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;'>
-        <h3 style='color: white;'>🎯 My Mission</h3>
-        <p style='color: white;'>To democratize financial knowledge and empower individuals with tools that make 
-        personal finance management accessible, understandable, and actionable for everyone.</p>
+    <div class='financial-sticker' style='background: linear-gradient(135deg, #1e293b 0%, #334155 100%); color: white; text-align: center;'>
+        <h3 style='color: white;'>🚀 My Mission</h3>
+        <p style='color: white; font-size: 1.1em;'>
+            To democratize financial knowledge and create tools that make personal finance 
+            management accessible, understandable, and actionable for everyone.
+        </p>
+        <div style='font-size: 3rem; margin-top: 1rem;'>💡</div>
     </div>
     """, unsafe_allow_html=True)
 
-# ... (keep the rest of the code the same)
+# --- Footer ---
+st.markdown("---")
+st.markdown("""
+<div style='text-align: center; color: #64748b; padding: 2rem;'>
+    <p>Built with ❤️ by Ayush Shukla | AI Financial Advisor v2.0</p>
+    <p>💡 Your financial journey starts here!</p>
+</div>
+""", unsafe_allow_html=True)
