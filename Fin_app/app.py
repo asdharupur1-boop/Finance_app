@@ -1862,7 +1862,7 @@ elif st.session_state.current_page == "🎯 Goals Planner":
         if st.session_state.goals:
             # Goals Overview
             total_goals_value = sum(g['amount'] for g in st.session_state.goals)
-            avg_years = np.mean([g['years'] for g in st.session_state.goals)
+            avg_years = np.mean([g['years'] for g in st.session_state.goals])
             
             st.markdown("### 📊 Goals Overview")
             overview_cols = st.columns(3)
@@ -2116,3 +2116,4 @@ st.markdown("""
     <p style='font-size: 1.1rem;'>🤖 Powered by Machine Learning & Data Science | 📊 Your Financial Companion</p>
 </div>
 """, unsafe_allow_html=True)
+
