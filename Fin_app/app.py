@@ -9,6 +9,27 @@ import os
 from io import BytesIO
 import warnings
 warnings.filterwarnings('ignore')
+import streamlit as st
+
+# Set page config with light theme
+st.set_page_config(
+    page_title='AI Financial Advisor — By Ayush Shukla', 
+    page_icon='🤖', 
+    layout='wide',
+    initial_sidebar_state='auto'
+)
+
+# Apply light theme through config
+st.markdown("""
+<style>
+    .stApp {
+        background-color: white;
+    }
+    .main .block-container {
+        background-color: white;
+    }
+</style>
+""", unsafe_allow_html=True)
 
 # --- PDF using reportlab for Unicode support ---
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
@@ -1649,3 +1670,4 @@ st.markdown("""
     <p>💡 Your financial journey starts here!</p>
 </div>
 """, unsafe_allow_html=True)
+
