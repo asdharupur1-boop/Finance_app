@@ -6,3 +6,5 @@ fpdf2
 matplotlib
 reportlab
 seaborn
+yfinance
+
