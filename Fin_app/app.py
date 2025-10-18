@@ -1492,7 +1492,7 @@ elif st.session_state.current_page == "👨‍💻 Developer":
     
     with contact_cols[0]:
         st.markdown("""
-        <a href="https://github.com/ayushshukla" target="_blank" class="social-link">
+        <a href="https://github.com/asdharupur1-boop/Finance_app" target="_blank" class="social-link">
             <div style='font-size: 2.5rem;'>🐙</div>
             <p><strong>GitHub</strong></p>
             <p style='font-size: 1rem;'>ayushshukla</p>
@@ -1501,7 +1501,7 @@ elif st.session_state.current_page == "👨‍💻 Developer":
     
     with contact_cols[1]:
         st.markdown("""
-        <a href="https://linkedin.com/in/ayushshukla" target="_blank" class="social-link">
+        <a href="https://www.linkedin.com/in/ayush-shukla-890072337" target="_blank" class="social-link">
             <div style='font-size: 2.5rem;'>💼</div>
             <p><strong>LinkedIn</strong></p>
             <p style='font-size: 1rem;'>ayushshukla</p>
@@ -1510,7 +1510,7 @@ elif st.session_state.current_page == "👨‍💻 Developer":
     
     with contact_cols[2]:
         st.markdown("""
-        <a href="mailto:ayush.shukla@example.com" class="social-link">
+        <a href="mailto:Asdharupur1@gmail.com" class="social-link">
             <div style='font-size: 2.5rem;'>📧</div>
             <p><strong>Email</strong></p>
             <p style='font-size: 1rem;'>Contact Me</p>
@@ -1519,7 +1519,7 @@ elif st.session_state.current_page == "👨‍💻 Developer":
     
     with contact_cols[3]:
         st.markdown("""
-        <a href="https://ayushshukla.xyz" target="_blank" class="social-link">
+        <a href="https://github.com/asdharupur1-boop" target="_blank" class="social-link">
             <div style='font-size: 2.5rem;'>🌐</div>
             <p><strong>Portfolio</strong></p>
             <p style='font-size: 1rem;'>ayushshukla.xyz</p>
@@ -1534,3 +1534,4 @@ st.markdown("""
     <p style='font-size: 1.1rem;'>🤖 Powered by Machine Learning & Data Science | 📊 Your Financial Companion</p>
 </div>
 """, unsafe_allow_html=True)
+
