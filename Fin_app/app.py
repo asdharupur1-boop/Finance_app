@@ -919,7 +919,7 @@ elif st.session_state.current_page == "📈 Dashboard":
                     }
                 }
             ))
-                        fig.update_layout(height=300, paper_bgcolor='rgba(0,0,0,0)', font={'color': 'black'})
+            fig.update_layout(height=300, paper_bgcolor='rgba(0,0,0,0)', font={'color': 'black'})
             st.plotly_chart(fig, use_container_width=True)
 
         with col2:
@@ -1699,3 +1699,4 @@ st.markdown("""
     <p>🤖 Powered by Machine Learning & Data Science | 📊 Your Financial Companion</p>
 </div>
 """, unsafe_allow_html=True)
+
