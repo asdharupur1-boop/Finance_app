@@ -1095,11 +1095,11 @@ def investment_projection_calculator(monthly_investment, years, expected_return)
 
 # --- Initialize Session State ---
 if 'user_data' not in st.session_state:
-    st.session_state.user_data = load_json(SNAPSHOT_FILE, {})
+    st.session_state.user_data = {}
 if 'goals' not in st.session_state:
-    st.session_state.goals = load_json(GOALS_FILE, [])
+    st.session_state.goals = []
 if 'portfolio' not in st.session_state:
-    st.session_state.portfolio = load_json(PORTFOLIO_FILE, [])
+    st.session_state.portfolio = []
 if 'current_page' not in st.session_state:
     st.session_state.current_page = "📊 Snapshot"
 if 'quiz_answers' not in st.session_state:
@@ -1244,37 +1244,36 @@ if st.session_state.current_page == "📊 Snapshot":
         with col1:
             st.markdown("### 💰 Income & Profile")
             monthly_income = st.number_input('Monthly Take-Home Income (₹)', min_value=0.0, 
-                                           value=float(st.session_state.user_data.get('monthly_income', 75000.0)), 
+                                           value=0.0, 
                                            step=1000.0, key='monthly_income')
             current_savings = st.number_input('Current Savings & Emergency Fund (₹)', min_value=0.0, 
-                                            value=float(st.session_state.user_data.get('current_savings', 100000.0)), 
+                                            value=0.0, 
                                             step=5000.0, key='current_savings')
             investment_percentage = st.slider('% of Income to Invest Monthly', 0, 100, 
-                                            int(st.session_state.user_data.get('investment_percentage', 20)), 
+                                            0, 
                                             key='investment_percentage')
             
             st.markdown("### 🤖 ML Profile Data")
             age = st.number_input('Your Age', min_value=18, max_value=80, 
-                                value=st.session_state.user_data.get('age', 30), key='age')
+                                value=30, key='age')
             investment_experience = st.slider('Investment Experience Level (1-5)', 1, 5, 
-                                            st.session_state.user_data.get('investment_experience', 2),
+                                            2,
                                             help="1: Beginner, 2: Some knowledge, 3: Intermediate, 4: Experienced, 5: Expert")
             
         with col2:
             st.markdown("### 💸 Monthly Expenses")
-            defaults = st.session_state.user_data.get('expenses', {})
             rent_emi = st.number_input('🏠 Rent / Home Loan EMI (₹)', 0.0, 
-                                     value=float(defaults.get('Rent/EMI', 20000.0)), step=1000.0, key='rent_emi')
+                                     value=0.0, step=1000.0, key='rent_emi')
             groceries = st.number_input('🛒 Groceries & Household (₹)', 0.0, 
-                                      value=float(defaults.get('Groceries', 8000.0)), step=500.0, key='groceries')
+                                      value=0.0, step=500.0, key='groceries')
             utilities = st.number_input('⚡ Utilities (Electricity, Water, Gas) (₹)', 0.0, 
-                                      value=float(defaults.get('Utilities', 3000.0)), step=200.0, key='utilities')
+                                      value=0.0, step=200.0, key='utilities')
             transportation = st.number_input('🚗 Transportation (Fuel, Maintenance) (₹)', 0.0, 
-                                           value=float(defaults.get('Transportation', 5000.0)), step=500.0, key='transportation')
+                                           value=0.0, step=500.0, key='transportation')
             dining_entertainment = st.number_input('🍽️ Dining & Entertainment (₹)', 0.0, 
-                                                 value=float(defaults.get('Dining & Entertainment', 6000.0)), step=500.0, key='dining')
+                                                 value=0.0, step=500.0, key='dining')
             miscellaneous = st.number_input('📦 Miscellaneous Expenses (₹)', 0.0, 
-                                          value=float(defaults.get('Miscellaneous', 3000.0)), step=200.0, key='miscellaneous')
+                                          value=0.0, step=200.0, key='miscellaneous')
 
         # Assets & Liabilities Section
         st.markdown("### 🏦 Assets & Liabilities")
@@ -1282,23 +1281,21 @@ if st.session_state.current_page == "📊 Snapshot":
         
         with col3:
             st.markdown("#### 💎 Assets")
-            assets_defaults = st.session_state.user_data.get('assets', {})
             cash_balance = st.number_input('💵 Cash & Bank Balance (₹)', 0.0, 
-                                         value=float(assets_defaults.get('Cash', 50000.0)), step=5000.0, key='cash')
+                                         value=0.0, step=5000.0, key='cash')
             stocks_mf = st.number_input('📈 Stocks & Mutual Funds (₹)', 0.0, 
-                                      value=float(assets_defaults.get('Stocks/MF', 0.0)), step=10000.0, key='stocks')
+                                      value=0.0, step=10000.0, key='stocks')
             property_value = st.number_input('🏠 Property Value (₹)', 0.0, 
-                                           value=float(assets_defaults.get('Property', 0.0)), step=50000.0, key='property')
+                                           value=0.0, step=50000.0, key='property')
         
         with col4:
             st.markdown("#### 📄 Liabilities")
-            liab_defaults = st.session_state.user_data.get('liabilities', {})
             home_loan = st.number_input('🏦 Home Loan Outstanding (₹)', 0.0, 
-                                      value=float(liab_defaults.get('Home Loan', 0.0)), step=10000.0, key='home_loan')
+                                      value=0.0, step=10000.0, key='home_loan')
             personal_loan = st.number_input('💳 Personal Loan Outstanding (₹)', 0.0, 
-                                          value=float(liab_defaults.get('Personal Loan', 0.0)), step=5000.0, key='personal_loan')
+                                          value=0.0, step=5000.0, key='personal_loan')
             other_debt = st.number_input('📝 Other Debt (₹)', 0.0, 
-                                       value=float(liab_defaults.get('Other Debt', 0.0)), step=5000.0, key='other_debt')
+                                       value=0.0, step=5000.0, key='other_debt')
 
         if st.form_submit_button('💾 Save Financial Snapshot', use_container_width=True):
             user_data = {
@@ -1342,9 +1339,18 @@ elif st.session_state.current_page == "📈 Dashboard":
             <h3>Get Started with Your Financial Journey!</h3>
             <p>Create your financial snapshot to unlock personalized insights and recommendations.</p>
             <p><strong>🔒 All your data remains 100% private</strong></p>
-            <p><strong>👉 Navigate to "📊 Snapshot" to get started!</strong></p>
+            <p><strong>👇 Scroll down and click on "📊 Snapshot" to enter your details!</strong></p>
         </div>
         """, unsafe_allow_html=True)
+        
+        # Show navigation reminder
+        st.markdown("---")
+        st.markdown("### 🚀 Quick Navigation")
+        nav_cols = st.columns(3)
+        with nav_cols[1]:
+            if st.button("📊 Go to Snapshot", use_container_width=True):
+                st.session_state.current_page = "📊 Snapshot"
+                st.rerun()
     else:
         user_data = st.session_state.user_data
         analyzer = MLFinancialPredictor()
@@ -1427,6 +1433,8 @@ elif st.session_state.current_page == "📈 Dashboard":
                     'Amount': '₹{:,.0f}',
                     'Percentage': '{:.1f}%'
                 }), use_container_width=True)
+        else:
+            st.info("💡 No expense data available. Add your expenses in the Snapshot section.")
 
 # --- ML Insights Page ---
 elif st.session_state.current_page == "🤖 ML Insights":
@@ -1445,9 +1453,18 @@ elif st.session_state.current_page == "🤖 ML Insights":
                 <li>💡 Personalized Recommendations</li>
             </ul>
             <p><strong>🔒 Your data remains 100% private</strong></p>
-            <p><strong>👉 Navigate to "📊 Snapshot" to get started!</strong></p>
+            <p><strong>👇 Scroll down and click on "📊 Snapshot" to enter your details!</strong></p>
         </div>
         """, unsafe_allow_html=True)
+        
+        # Show navigation reminder
+        st.markdown("---")
+        st.markdown("### 🚀 Quick Navigation")
+        nav_cols = st.columns(3)
+        with nav_cols[1]:
+            if st.button("📊 Go to Snapshot", use_container_width=True):
+                st.session_state.current_page = "📊 Snapshot"
+                st.rerun()
     else:
         user_data = st.session_state.user_data
         analyzer = MLFinancialPredictor()
@@ -1497,6 +1514,8 @@ elif st.session_state.current_page == "🤖 ML Insights":
                             <p style='font-size: 1.1rem;'><strong>ML Assessment:</strong> {confidence}</p>
                         </div>
                         """, unsafe_allow_html=True)
+            else:
+                st.info("🎯 No goals set yet. Visit the Goals Planner to set your financial goals!")
         
         # ML Recommendations
         st.markdown("### 💡 ML-Powered Recommendations")
@@ -1526,9 +1545,18 @@ elif st.session_state.current_page == "🧠 Behavior Quiz":
             <h3>Personalized Quiz Awaits Your Profile!</h3>
             <p>Complete your financial snapshot to get quiz results tailored to your specific financial situation.</p>
             <p><strong>🔒 Your quiz responses remain private</strong></p>
-            <p><strong>👉 Navigate to "📊 Snapshot" to get started!</strong></p>
+            <p><strong>👇 Scroll down and click on "📊 Snapshot" to enter your details!</strong></p>
         </div>
         """, unsafe_allow_html=True)
+        
+        # Show navigation reminder
+        st.markdown("---")
+        st.markdown("### 🚀 Quick Navigation")
+        nav_cols = st.columns(3)
+        with nav_cols[1]:
+            if st.button("📊 Go to Snapshot", use_container_width=True):
+                st.session_state.current_page = "📊 Snapshot"
+                st.rerun()
     else:
         st.markdown("""
         <div class='financial-sticker'>
@@ -1698,9 +1726,18 @@ elif st.session_state.current_page == "💹 Investment Center":
             <h3>Personalized Investment Center Awaits!</h3>
             <p>Complete your financial snapshot to get investment recommendations tailored to your risk profile and goals.</p>
             <p><strong>🔒 Your investment data remains private</strong></p>
-            <p><strong>👉 Navigate to "📊 Snapshot" to get started!</strong></p>
+            <p><strong>👇 Scroll down and click on "📊 Snapshot" to enter your details!</strong></p>
         </div>
         """, unsafe_allow_html=True)
+        
+        # Show navigation reminder
+        st.markdown("---")
+        st.markdown("### 🚀 Quick Navigation")
+        nav_cols = st.columns(3)
+        with nav_cols[1]:
+            if st.button("📊 Go to Snapshot", use_container_width=True):
+                st.session_state.current_page = "📊 Snapshot"
+                st.rerun()
     else:
         st.markdown("""
         <div class='financial-sticker'>
@@ -1816,9 +1853,18 @@ elif st.session_state.current_page == "🎯 Goals Planner":
             <h3>Goal Planning Made Personal!</h3>
             <p>Complete your financial snapshot to set goals that align with your income, expenses, and savings capacity.</p>
             <p><strong>🔒 Your goals are stored locally and private</strong></p>
-            <p><strong>👉 Navigate to "📊 Snapshot" to get started!</strong></p>
+            <p><strong>👇 Scroll down and click on "📊 Snapshot" to enter your details!</strong></p>
         </div>
         """, unsafe_allow_html=True)
+        
+        # Show navigation reminder
+        st.markdown("---")
+        st.markdown("### 🚀 Quick Navigation")
+        nav_cols = st.columns(3)
+        with nav_cols[1]:
+            if st.button("📊 Go to Snapshot", use_container_width=True):
+                st.session_state.current_page = "📊 Snapshot"
+                st.rerun()
     else:
         # Privacy Notice
         st.markdown("""
@@ -1914,6 +1960,8 @@ elif st.session_state.current_page == "🎯 Goals Planner":
                             st.session_state.goals.pop(i)
                             save_json(GOALS_FILE, st.session_state.goals)
                             st.rerun()
+        else:
+            st.info("🎯 No goals set yet. Use the form above to add your first financial goal!")
 
 # --- Portfolio Page ---
 elif st.session_state.current_page == "💼 Portfolio":
@@ -1926,9 +1974,18 @@ elif st.session_state.current_page == "💼 Portfolio":
             <h3>Portfolio Tracking Made Easy!</h3>
             <p>Complete your financial snapshot to get personalized portfolio recommendations and tracking.</p>
             <p><strong>🔒 Your portfolio data remains private</strong></p>
-            <p><strong>👉 Navigate to "📊 Snapshot" to get started!</strong></p>
+            <p><strong>👇 Scroll down and click on "📊 Snapshot" to enter your details!</strong></p>
         </div>
         """, unsafe_allow_html=True)
+        
+        # Show navigation reminder
+        st.markdown("---")
+        st.markdown("### 🚀 Quick Navigation")
+        nav_cols = st.columns(3)
+        with nav_cols[1]:
+            if st.button("📊 Go to Snapshot", use_container_width=True):
+                st.session_state.current_page = "📊 Snapshot"
+                st.rerun()
     else:
         st.markdown("""
         <div class='financial-sticker'>
@@ -1973,6 +2030,8 @@ elif st.session_state.current_page == "💼 Portfolio":
                 fig = px.pie(pfdf, names='category', values='amount', title='Investment Allocation by Category')
                 fig = apply_plotly_theme(fig)
                 st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.info("💼 No portfolio holdings added yet. Use the form above to add your first investment!")
 
 # --- Export Page ---
 elif st.session_state.current_page == "📥 Export":
@@ -1985,9 +2044,18 @@ elif st.session_state.current_page == "📥 Export":
             <h3>Comprehensive Reports Await Your Data!</h3>
             <p>Complete your financial snapshot to generate detailed PDF reports with analysis and recommendations.</p>
             <p><strong>🔒 All reports are generated locally on your device</strong></p>
-            <p><strong>👉 Navigate to "📊 Snapshot" to get started!</strong></p>
+            <p><strong>👇 Scroll down and click on "📊 Snapshot" to enter your details!</strong></p>
         </div>
         """, unsafe_allow_html=True)
+        
+        # Show navigation reminder
+        st.markdown("---")
+        st.markdown("### 🚀 Quick Navigation")
+        nav_cols = st.columns(3)
+        with nav_cols[1]:
+            if st.button("📊 Go to Snapshot", use_container_width=True):
+                st.session_state.current_page = "📊 Snapshot"
+                st.rerun()
     else:
         st.markdown("""
         <div class='financial-sticker'>
