@@ -1487,11 +1487,12 @@ elif st.session_state.current_page == "🤖 ML Insights":
             """, unsafe_allow_html=True)
             
             # Risk Factors Breakdown
-            st.markdown("### 📊 Risk Factor Analysis")
-            for factor, score in analyzer.risk_factors.items():
-                st.progress(min(score/2, 1.0), text=f"{factor}: {score:.2f}")
-        
-        with col2:
+           # Risk Factors Breakdown
+st.markdown("### 📊 Risk Factor Analysis")
+for factor, score in analyzer.risk_factors.items():
+    # Normalize the score to be between 0 and 1
+    normalized_score = max(0.0, min(score / 10.0, 1.0))  # Ensure it's between 0-1
+    st.progress(normalized_score, text=f"{factor}: {score:.2f}")
             # Goal Success Predictions
             if st.session_state.goals:
                 st.markdown("### 🎯 ML Goal Success Probability")
@@ -2188,4 +2189,5 @@ st.markdown("""
     <p style='font-size: 1rem; margin-top: 1rem;'>🔒 <strong>100% Private:</strong> All your financial data stays on your device</p>
 </div>
 """, unsafe_allow_html=True)
+
 
