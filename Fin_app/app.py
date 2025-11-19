@@ -408,6 +408,37 @@ st.markdown("""
         margin: 2rem 0;
         box-shadow: 0 8px 30px rgba(0,0,0,0.08);
     }
+    
+    /* Educational tooltip styles */
+    .tooltip-container {
+        position: relative;
+        display: inline-block;
+        cursor: help;
+    }
+    
+    .tooltip-text {
+        visibility: hidden;
+        width: 300px;
+        background-color: #1e293b;
+        color: white;
+        text-align: center;
+        border-radius: 12px;
+        padding: 12px;
+        position: absolute;
+        z-index: 1;
+        bottom: 125%;
+        left: 50%;
+        margin-left: -150px;
+        opacity: 0;
+        transition: opacity 0.3s;
+        font-size: 0.9rem;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+    }
+    
+    .tooltip-container:hover .tooltip-text {
+        visibility: visible;
+        opacity: 1;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -1057,6 +1088,350 @@ class MLFinancialPredictor:
         
         return recommendations
 
+# --- Enhanced Portfolio Integration Class ---
+class PortfolioIntegrator:
+    def __init__(self):
+        self.supported_brokers = {
+            'zerodha': {'name': 'Zerodha Kite', 'type': 'broker'},
+            'angelone': {'name': 'Angel One', 'type': 'broker'},
+            'icici_direct': {'name': 'ICICI Direct', 'type': 'broker'},
+            'hdfc_sec': {'name': 'HDFC Securities', 'type': 'broker'},
+            'kotak_sec': {'name': 'Kotak Securities', 'type': 'broker'},
+            'axis_sec': {'name': 'Axis Securities', 'type': 'broker'}
+        }
+        
+        self.supported_banks = {
+            'hdfc_bank': {'name': 'HDFC Bank', 'type': 'bank'},
+            'icici_bank': {'name': 'ICICI Bank', 'type': 'bank'},
+            'sbi_bank': {'name': 'State Bank of India', 'type': 'bank'},
+            'axis_bank': {'name': 'Axis Bank', 'type': 'bank'},
+            'kotak_bank': {'name': 'Kotak Mahindra Bank', 'type': 'bank'}
+        }
+    
+    def get_integration_instructions(self, platform_type, platform_name):
+        """Provide instructions for manual integration"""
+        instructions = {
+            'broker': f"""
+            ### 📊 {platform_name} Integration Instructions
+            
+            **🔒 Privacy-First Approach**: For maximum security, we recommend manual CSV import:
+            
+            1. **Login to your {platform_name} account**
+            2. **Navigate to Portfolio/Holdings section**
+            3. **Export as CSV/Excel file**
+            4. **Upload the file here for automatic processing**
+            
+            **Supported Data**:
+            - Stocks & Equity Holdings
+            - Mutual Fund Investments  
+            - ETF Holdings
+            - Cash Balance
+            
+            **Security Note**: Your data never leaves your device. All processing happens locally.
+            """,
+            
+            'bank': f"""
+            ### 🏦 {platform_name} Integration Instructions
+            
+            **🔒 Secure Manual Integration**:
+            
+            1. **Login to {platform_name} Net Banking**
+            2. **Go to Investments/Portfolio section**
+            3. **Download investment statement (CSV/PDF)**
+            4. **Upload here for local processing**
+            
+            **Supported Investments**:
+            - Fixed Deposits (FDs)
+            - Recurring Deposits (RDs)  
+            - Mutual Funds via bank
+            - Bonds & Debentures
+            
+            **Privacy Guarantee**: All data processing occurs 100% locally on your device.
+            """
+        }
+        return instructions.get(platform_type, "")
+    
+    def process_csv_upload(self, uploaded_file):
+        """Process uploaded CSV file for portfolio data"""
+        try:
+            df = pd.read_csv(uploaded_file)
+            
+            # Common column mappings for different brokers/banks
+            column_mappings = {
+                'stock_name': ['stock', 'company', 'symbol', 'security', 'instrument'],
+                'quantity': ['qty', 'quantity', 'units', 'shares'],
+                'avg_price': ['avg price', 'average price', 'cost price', 'purchase price'],
+                'current_price': ['current price', 'ltp', 'last price', 'market price']
+            }
+            
+            processed_holdings = []
+            
+            # Try to map columns
+            for _, row in df.iterrows():
+                holding = {}
+                
+                # Find stock name column
+                for possible_col in column_mappings['stock_name']:
+                    if possible_col in df.columns.str.lower():
+                        holding['name'] = row[possible_col]
+                        break
+                
+                # Find quantity column
+                for possible_col in column_mappings['quantity']:
+                    if possible_col in df.columns.str.lower():
+                        holding['quantity'] = float(row[possible_col])
+                        break
+                
+                # Find average price column
+                for possible_col in column_mappings['avg_price']:
+                    if possible_col in df.columns.str.lower():
+                        holding['avg_price'] = float(row[possible_col])
+                        break
+                
+                # Find current price column
+                for possible_col in column_mappings['current_price']:
+                    if possible_col in df.columns.str.lower():
+                        holding['current_price'] = float(row[possible_col])
+                        break
+                
+                if 'name' in holding and 'quantity' in holding:
+                    if 'current_price' in holding:
+                        amount = holding['quantity'] * holding['current_price']
+                    elif 'avg_price' in holding:
+                        amount = holding['quantity'] * holding['avg_price']
+                    else:
+                        amount = 0
+                    
+                    processed_holdings.append({
+                        'name': holding['name'],
+                        'amount': amount,
+                        'category': 'Stocks',
+                        'quantity': holding.get('quantity', 0),
+                        'source': 'CSV Import'
+                    })
+            
+            return processed_holdings
+        except Exception as e:
+            st.error(f"Error processing CSV file: {str(e)}")
+            return []
+
+# --- Tax Planning Module ---
+class TaxPlanner:
+    def __init__(self):
+        self.tax_saving_options = {
+            'ELSS': {
+                'name': 'Equity Linked Savings Scheme',
+                'lockin': '3 years',
+                'max_deduction': 150000,
+                'returns': '12-15%',
+                'risk': 'High',
+                'description': 'Tax-saving mutual funds with equity exposure and shortest lock-in period'
+            },
+            'PPF': {
+                'name': 'Public Provident Fund',
+                'lockin': '15 years',
+                'max_deduction': 150000,
+                'returns': '7.1%',
+                'risk': 'Low',
+                'description': 'Government-backed long-term savings with tax-free returns'
+            },
+            'NPS': {
+                'name': 'National Pension System',
+                'lockin': 'Till retirement',
+                'max_deduction': 50000,
+                'returns': '8-10%',
+                'risk': 'Medium',
+                'description': 'Retirement-focused scheme with additional ₹50,000 deduction under 80CCD(1B)'
+            },
+            'TaxSaverFD': {
+                'name': 'Tax Saver Fixed Deposit',
+                'lockin': '5 years',
+                'max_deduction': 150000,
+                'returns': '6-7%',
+                'risk': 'Low',
+                'description': 'Bank fixed deposits with tax benefits under section 80C'
+            },
+            'ULIP': {
+                'name': 'Unit Linked Insurance Plan',
+                'lockin': '5 years',
+                'max_deduction': 150000,
+                'returns': '8-12%',
+                'risk': 'Medium',
+                'description': 'Combination of insurance and investment with market-linked returns'
+            },
+            'HRA': {
+                'name': 'House Rent Allowance',
+                'lockin': 'N/A',
+                'max_deduction': 'As per salary',
+                'returns': 'N/A',
+                'risk': 'N/A',
+                'description': 'Tax exemption on house rent paid'
+            },
+            'HomeLoan': {
+                'name': 'Home Loan Interest',
+                'lockin': 'N/A',
+                'max_deduction': 200000,
+                'returns': 'N/A',
+                'risk': 'N/A',
+                'description': 'Deduction on home loan interest under section 24'
+            }
+        }
+    
+    def get_tax_recommendations(self, user_data, goals):
+        """Generate personalized tax saving recommendations"""
+        recommendations = []
+        age = user_data.get('age', 30)
+        monthly_income = user_data.get('monthly_income', 0)
+        annual_income = monthly_income * 12
+        
+        # Basic tax slab analysis
+        if annual_income <= 700000:
+            recommendations.append("💡 **Tax Planning**: You're below taxable income limit. Focus on wealth creation rather than tax saving.")
+        elif annual_income <= 1200000:
+            recommendations.append("💡 **Tax Planning**: Consider ELSS funds for tax saving with growth potential and shortest lock-in.")
+            recommendations.append("🏦 **Recommendation**: Allocate ₹1.5L to Section 80C instruments (ELSS, PPF, Insurance Premiums)")
+        else:
+            recommendations.append("💡 **Tax Planning**: Maximize all tax-saving avenues including NPS for additional ₹50,000 deduction.")
+            recommendations.append("🏠 **Recommendation**: If paying rent, claim HRA exemption. Consider home loan for additional benefits.")
+        
+        # Age-based recommendations
+        if age < 40:
+            recommendations.append("🎯 **Strategy**: Prefer ELSS over traditional options for better long-term returns despite higher risk.")
+        else:
+            recommendations.append("🎯 **Strategy**: Balance between ELSS and PPF for tax savings with moderate risk exposure.")
+        
+        # Goal-based tax planning
+        for goal in goals:
+            if 'house' in goal['name'].lower() or 'home' in goal['name'].lower():
+                recommendations.append(f"🏠 **Goal Alignment**: Your {goal['name']} goal can be optimized with home loan tax benefits (Section 24)")
+        
+        return recommendations
+    
+    def calculate_tax_savings(self, investments, annual_income):
+        """Calculate potential tax savings"""
+        total_investment = sum(investments.values())
+        max_deduction = min(total_investment, 150000)  # Section 80C limit
+        
+        tax_saved = 0
+        if annual_income <= 700000:
+            tax_saved = 0
+        elif annual_income <= 900000:
+            tax_saved = max_deduction * 0.05
+        elif annual_income <= 1200000:
+            tax_saved = max_deduction * 0.20
+        else:
+            tax_saved = max_deduction * 0.30
+        
+        return tax_saved, max_deduction
+
+# --- Educational Content Module ---
+class FinancialEducator:
+    def __init__(self):
+        self.concepts = {
+            'behavioral_finance': {
+                'title': '🧠 Behavioral Finance',
+                'content': """
+                **Understanding Your Money Psychology**
+                
+                Behavioral finance studies how psychological influences affect financial decisions. Key concepts:
+                
+                • **Loss Aversion**: Feeling the pain of losses more strongly than pleasure from gains
+                • **Anchoring**: Relying too heavily on first piece of information
+                • **Herd Mentality**: Following what everyone else is doing
+                • **Overconfidence**: Overestimating your investment knowledge
+                
+                **Why it matters**: Understanding these biases helps you make rational financial decisions.
+                """,
+                'tip': 'Regularly review decisions to identify your behavioral patterns.'
+            },
+            'risk_profile': {
+                'title': '🎯 Risk Profile Analysis',
+                'content': """
+                **Finding Your Investment Comfort Zone**
+                
+                Your risk profile determines suitable investments based on:
+                
+                • **Risk Capacity**: How much risk you can afford to take
+                • **Risk Tolerance**: How much risk you're comfortable with
+                • **Risk Requirement**: How much risk you need to achieve goals
+                
+                **Risk Categories**:
+                - **Conservative**: Prefer safety over returns (FDs, Debt funds)
+                - **Moderate**: Balance between safety and growth (Balanced funds)
+                - **Aggressive**: Seek maximum growth (Equity, Small caps)
+                
+                **Tip**: Your risk profile should align with your financial goals and time horizon.
+                """,
+                'tip': 'Rebalance portfolio annually to maintain your target risk level.'
+            },
+            'sip_vs_lumpsum': {
+                'title': '💰 SIP vs Lump Sum Investing',
+                'content': """
+                **Choosing the Right Investment Approach**
+                
+                **SIP (Systematic Investment Plan)**:
+                • Invest fixed amount regularly
+                • Benefits from rupee cost averaging
+                • Reduces impact of market timing
+                • Ideal for salaried individuals
+                
+                **Lump Sum Investing**:
+                • Invest large amount at once
+                • Better if markets are rising
+                • Requires market timing skills
+                • Suitable for bonuses/inheritance
+                
+                **Recommendation**: For most investors, SIP works better due to discipline and averaging benefits.
+                """,
+                'tip': 'Start with SIP for discipline, add lump sum during market corrections.'
+            },
+            'asset_allocation': {
+                'title': '📊 Asset Allocation Strategy',
+                'content': """
+                **The Foundation of Smart Investing**
+                
+                Asset allocation means dividing investments among different categories:
+                
+                • **Equity**: Stocks, mutual funds (high growth, high risk)
+                • **Debt**: Bonds, FDs (stable returns, low risk)
+                • **Gold**: Commodity (inflation hedge, medium risk)
+                • **Real Estate**: Property (long-term, illiquid)
+                
+                **Golden Rule**: Your age in percentage should be in debt instruments.
+                
+                **Example**: If you're 30 years old, 30% in debt, 70% in equity.
+                """,
+                'tip': 'Diversification is the only free lunch in investing.'
+            },
+            'tax_planning': {
+                'title': '🏦 Smart Tax Planning',
+                'content': """
+                **Save Tax, Build Wealth**
+                
+                **Key Tax Saving Instruments**:
+                
+                • **ELSS**: Equity funds with 3-year lock-in (Best returns)
+                • **PPF**: 15-year government scheme (Safe returns)
+                • **NPS**: Pension scheme with extra ₹50,000 deduction
+                • **Health Insurance**: Premiums deductible under Section 80D
+                
+                **Important Sections**:
+                - **80C**: ₹1.5 lakh deduction (ELSS, PPF, Insurance)
+                - **80D**: Health insurance premiums
+                - **24(b)**: Home loan interest (up to ₹2 lakh)
+                - **10(14)**: HRA exemption
+                
+                **Strategy**: Start tax planning early in financial year.
+                """,
+                'tip': 'ELSS gives triple benefits: Tax saving, equity growth, shortest lock-in.'
+            }
+        }
+    
+    def get_tooltip(self, concept_key):
+        """Get educational tooltip for financial concepts"""
+        concept = self.concepts.get(concept_key, {})
+        return concept.get('tip', 'Learn more about this concept in our educational section.')
+
 # --- Data Persistence ---
 DATA_DIR = '.ai_financial_data'
 os.makedirs(DATA_DIR, exist_ok=True)
@@ -1108,6 +1483,8 @@ if 'current_question' not in st.session_state:
     st.session_state.current_question = 0
 if 'quiz_completed' not in st.session_state:
     st.session_state.quiz_completed = False
+if 'tax_investments' not in st.session_state:
+    st.session_state.tax_investments = {}
 
 # --- Enhanced Mutual Fund Data ---
 @st.cache_data
@@ -1204,7 +1581,7 @@ st.markdown("""
 nav_options = [
     "📊 Snapshot", "📈 Dashboard", "🤖 ML Insights", 
     "🧠 Behavior Quiz", "💹 Investment Center", "🎯 Goals Planner", 
-    "💼 Portfolio", "📥 Export", "👨‍💻 Developer"
+    "💼 Portfolio", "🏦 Tax Planner", "📚 Learn", "📥 Export", "👨‍💻 Developer"
 ]
 
 # Create enhanced navigation columns
@@ -1437,7 +1814,6 @@ elif st.session_state.current_page == "📈 Dashboard":
             st.info("💡 No expense data available. Add your expenses in the Snapshot section.")
 
 # --- ML Insights Page ---
-# --- ML Insights Page ---
 elif st.session_state.current_page == "🤖 ML Insights":
     st.header('🤖 Advanced ML Insights')
     
@@ -1487,11 +1863,10 @@ elif st.session_state.current_page == "🤖 ML Insights":
             </div>
             """, unsafe_allow_html=True)
             
-            # Risk Factors Breakdown - FIXED SECTION
+            # Risk Factors Breakdown
             st.markdown("### 📊 Risk Factor Analysis")
             for factor, score in analyzer.risk_factors.items():
-                # Normalize the score to be between 0 and 1
-                normalized_score = max(0.0, min(score / 10.0, 1.0))  # Ensure it's between 0-1
+                normalized_score = max(0.0, min(score / 10.0, 1.0))
                 st.progress(normalized_score, text=f"{factor}: {score:.2f}")
         
         with col2:
@@ -1536,6 +1911,7 @@ elif st.session_state.current_page == "🤖 ML Insights":
                 {rec}
             </div>
             """, unsafe_allow_html=True)
+
 # --- Behavior Quiz Page ---
 elif st.session_state.current_page == "🧠 Behavior Quiz":
     st.header('🧠 Financial Behavior Quiz')
@@ -1997,18 +2373,68 @@ elif st.session_state.current_page == "💼 Portfolio":
         </div>
         """, unsafe_allow_html=True)
 
-        with st.form('portfolio_form'):
-            cols = st.columns(3)
-            name = cols[0].text_input('Holding Name', placeholder='e.g., Reliance Stocks, SBI Mutual Fund')
-            amt = cols[1].number_input('Amount (₹)', min_value=0.0, value=0.0, step=1000.0)
-            category = cols[2].selectbox('Category', ['Stocks', 'Mutual Funds', 'FD/RD', 'Gold', 'Real Estate', 'Other'])
+        # Portfolio Integration Section
+        st.markdown("### 🔗 Portfolio Integration")
+        integrator = PortfolioIntegrator()
+        
+        tab1, tab2, tab3 = st.tabs(["📤 Manual Entry", "📁 CSV Import", "🔗 Broker Integration"])
+        
+        with tab1:
+            with st.form('portfolio_form'):
+                cols = st.columns(3)
+                name = cols[0].text_input('Holding Name', placeholder='e.g., Reliance Stocks, SBI Mutual Fund')
+                amt = cols[1].number_input('Amount (₹)', min_value=0.0, value=0.0, step=1000.0)
+                category = cols[2].selectbox('Category', ['Stocks', 'Mutual Funds', 'FD/RD', 'Gold', 'Real Estate', 'Other'])
+                
+                add = cols[2].form_submit_button('➕ Add Holding')
+                
+                if add and name and amt>0:
+                    st.session_state.portfolio.append({'name': name, 'amount': amt, 'category': category})
+                    save_json(PORTFOLIO_FILE, st.session_state.portfolio)
+                    st.success('✅ Holding added successfully!')
+        
+        with tab2:
+            st.markdown("### 📁 Import Portfolio via CSV")
+            uploaded_file = st.file_uploader("Upload Portfolio CSV", type=['csv'])
             
-            add = cols[2].form_submit_button('➕ Add Holding')
+            if uploaded_file is not None:
+                processed_holdings = integrator.process_csv_upload(uploaded_file)
+                if processed_holdings:
+                    st.success(f"✅ Processed {len(processed_holdings)} holdings from CSV")
+                    
+                    if st.button("Add to Portfolio", use_container_width=True):
+                        st.session_state.portfolio.extend(processed_holdings)
+                        save_json(PORTFOLIO_FILE, st.session_state.portfolio)
+                        st.success("✅ Portfolio updated with CSV data!")
+                        st.rerun()
+        
+        with tab3:
+            st.markdown("### 🔗 Broker & Bank Integration")
+            col1, col2 = st.columns(2)
             
-            if add and name and amt>0:
-                st.session_state.portfolio.append({'name': name, 'amount': amt, 'category': category})
-                save_json(PORTFOLIO_FILE, st.session_state.portfolio)
-                st.success('✅ Holding added successfully!')
+            with col1:
+                st.markdown("#### 📊 Stock Brokers")
+                selected_broker = st.selectbox("Select Broker", 
+                                             [f"{details['name']} ({key})" 
+                                              for key, details in integrator.supported_brokers.items()])
+                
+                broker_key = selected_broker.split('(')[-1].replace(')', '')
+                broker_details = integrator.supported_brokers.get(broker_key, {})
+                
+                if broker_details:
+                    st.markdown(integrator.get_integration_instructions('broker', broker_details['name']))
+            
+            with col2:
+                st.markdown("#### 🏦 Banks")
+                selected_bank = st.selectbox("Select Bank", 
+                                           [f"{details['name']} ({key})" 
+                                            for key, details in integrator.supported_banks.items()])
+                
+                bank_key = selected_bank.split('(')[-1].replace(')', '')
+                bank_details = integrator.supported_banks.get(bank_key, {})
+                
+                if bank_details:
+                    st.markdown(integrator.get_integration_instructions('bank', bank_details['name']))
 
         if st.session_state.portfolio:
             pfdf = pd.DataFrame(st.session_state.portfolio)
@@ -2034,6 +2460,185 @@ elif st.session_state.current_page == "💼 Portfolio":
                 st.plotly_chart(fig, use_container_width=True)
         else:
             st.info("💼 No portfolio holdings added yet. Use the form above to add your first investment!")
+
+# --- Tax Planner Page ---
+elif st.session_state.current_page == "🏦 Tax Planner":
+    st.header('🏦 Tax Planning Center')
+    
+    if not st.session_state.user_data:
+        st.warning("🚨 Please create a financial snapshot first for personalized tax planning!")
+        st.markdown("""
+        <div class='financial-sticker'>
+            <h3>Smart Tax Planning Awaits!</h3>
+            <p>Complete your financial snapshot to get tax-saving recommendations based on your income and goals.</p>
+            <p><strong>🔒 Your tax data remains private</strong></p>
+            <p><strong>👇 Scroll down and click on "📊 Snapshot" to enter your details!</strong></p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Show navigation reminder
+        st.markdown("---")
+        st.markdown("### 🚀 Quick Navigation")
+        nav_cols = st.columns(3)
+        with nav_cols[1]:
+            if st.button("📊 Go to Snapshot", use_container_width=True):
+                st.session_state.current_page = "📊 Snapshot"
+                st.rerun()
+    else:
+        st.markdown("""
+        <div class='financial-sticker'>
+            <h3>Save Tax, Build Wealth</h3>
+            <p>Optimize your tax savings with AI-powered recommendations and goal-linked tax planning.</p>
+            <p><strong>🔒 All tax calculations are done locally</strong></p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        tax_planner = TaxPlanner()
+        user_data = st.session_state.user_data
+        annual_income = user_data.get('monthly_income', 0) * 12
+        
+        # Tax Recommendations
+        st.markdown("### 💡 Personalized Tax Recommendations")
+        tax_recommendations = tax_planner.get_tax_recommendations(user_data, st.session_state.goals)
+        for rec in tax_recommendations:
+            st.markdown(f"""
+            <div class='recommendation-card'>
+                {rec}
+            </div>
+            """, unsafe_allow_html=True)
+        
+        # Tax Saving Options
+        st.markdown("### 📊 Tax Saving Instruments")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown("#### 🎯 Section 80C Options (₹1.5 Lakh Limit)")
+            tax_options = ['ELSS', 'PPF', 'TaxSaverFD', 'ULIP']
+            
+            for option in tax_options:
+                details = tax_planner.tax_saving_options[option]
+                with st.expander(f"📈 {details['name']}"):
+                    st.write(f"**Lock-in:** {details['lockin']}")
+                    st.write(f"**Expected Returns:** {details['returns']}")
+                    st.write(f"**Risk:** {details['risk']}")
+                    st.write(f"**Description:** {details['description']}")
+                    
+                    investment = st.number_input(f"Investment in {details['name']} (₹)", 
+                                               min_value=0, 
+                                               max_value=150000,
+                                               value=0,
+                                               key=f"tax_{option}")
+                    
+                    st.session_state.tax_investments[option] = investment
+        
+        with col2:
+            st.markdown("#### 🏠 Other Tax Benefits")
+            other_options = ['NPS', 'HRA', 'HomeLoan']
+            
+            for option in other_options:
+                details = tax_planner.tax_saving_options[option]
+                with st.expander(f"💼 {details['name']}"):
+                    st.write(f"**Max Deduction:** {details['max_deduction']}")
+                    st.write(f"**Description:** {details['description']}")
+                    
+                    if option == 'NPS':
+                        investment = st.number_input(f"Additional NPS Investment (₹)", 
+                                                   min_value=0, 
+                                                   max_value=50000,
+                                                   value=0,
+                                                   key=f"tax_{option}")
+                        st.session_state.tax_investments[option] = investment
+        
+        # Tax Savings Calculation
+        st.markdown("### 🧮 Tax Savings Calculator")
+        if st.button("Calculate Tax Savings", use_container_width=True):
+            total_80c_investment = sum(st.session_state.tax_investments.get(opt, 0) for opt in ['ELSS', 'PPF', 'TaxSaverFD', 'ULIP'])
+            nps_extra = st.session_state.tax_investments.get('NPS', 0)
+            
+            tax_saved, max_deduction = tax_planner.calculate_tax_savings(
+                st.session_state.tax_investments, annual_income
+            )
+            
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("Total 80C Investment", format_currency(total_80c_investment))
+            with col2:
+                st.metric("NPS Additional", format_currency(nps_extra))
+            with col3:
+                st.metric("Estimated Tax Saved", format_currency(tax_saved))
+            
+            # Progress towards 80C limit
+            progress = min(total_80c_investment / 150000, 1.0)
+            st.progress(progress, text=f"Section 80C Utilization: {total_80c_investment:,}/150,000")
+            
+            if total_80c_investment < 150000:
+                st.info(f"💡 You can invest additional {format_currency(150000 - total_80c_investment)} to maximize 80C benefits")
+
+# --- Learn Page ---
+elif st.session_state.current_page == "📚 Learn":
+    st.header('📚 Financial Education Center')
+    
+    educator = FinancialEducator()
+    
+    st.markdown("""
+    <div class='financial-sticker'>
+        <h3>Master Your Financial Knowledge</h3>
+        <p>Learn essential financial concepts to make informed investment decisions.</p>
+        <p><strong>💡 Hover over concepts throughout the app for quick tips!</strong></p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Educational Concepts
+    concepts = educator.concepts
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        for key, concept in list(concepts.items())[:3]:
+            with st.expander(f"📖 {concept['title']}", expanded=True):
+                st.markdown(concept['content'])
+                st.info(f"**💡 Pro Tip:** {concept['tip']}")
+    
+    with col2:
+        for key, concept in list(concepts.items())[3:]:
+            with st.expander(f"📖 {concept['title']}", expanded=True):
+                st.markdown(concept['content'])
+                st.info(f"**💡 Pro Tip:** {concept['tip']}")
+    
+    # Interactive Quiz
+    st.markdown("### 🎯 Quick Knowledge Check")
+    
+    quiz_questions = [
+        {
+            'question': 'What is the main benefit of SIP investing?',
+            'options': ['Higher returns guaranteed', 'Rupee cost averaging', 'No market risk', 'Instant liquidity'],
+            'correct': 1,
+            'explanation': 'SIP benefits from rupee cost averaging, which reduces the impact of market timing.'
+        },
+        {
+            'question': 'Which tax-saving instrument has the shortest lock-in period?',
+            'options': ['PPF', 'ELSS', 'Tax Saver FD', 'NPS'],
+            'correct': 1,
+            'explanation': 'ELSS has only 3-year lock-in, while PPF is 15 years and Tax Saver FD is 5 years.'
+        },
+        {
+            'question': 'What does "asset allocation" mean?',
+            'options': ['Buying only stocks', 'Dividing investments across categories', 'Selling all investments', 'Keeping only cash'],
+            'correct': 1,
+            'explanation': 'Asset allocation means dividing your investments across different categories like equity, debt, gold, etc.'
+        }
+    ]
+    
+    for i, q in enumerate(quiz_questions):
+        st.markdown(f"**Q{i+1}: {q['question']}**")
+        selected = st.radio(f"Select answer for Q{i+1}", q['options'], key=f"edu_quiz_{i}")
+        
+        if st.button(f"Check Answer {i+1}", key=f"check_{i}"):
+            if q['options'].index(selected) == q['correct']:
+                st.success("✅ Correct! " + q['explanation'])
+            else:
+                st.error("❌ Incorrect. " + q['explanation'])
 
 # --- Export Page ---
 elif st.session_state.current_page == "📥 Export":
@@ -2185,11 +2790,8 @@ elif st.session_state.current_page == "👨‍💻 Developer":
 st.markdown("---")
 st.markdown("""
 <div style='text-align: center; color: #64748b; padding: 2rem;'>
-    <p style='font-size: 1.2rem; font-weight: 600;'>Built with ❤️ by Ayush Shukla | AI Financial Advisor v4.0</p>
+    <p style='font-size: 1.2rem; font-weight: 600;'>Built with ❤️ by Ayush Shukla | AI Financial Advisor v5.0</p>
     <p style='font-size: 1.1rem;'>🤖 Powered by Machine Learning & Data Science | 📊 Your Financial Companion</p>
     <p style='font-size: 1rem; margin-top: 1rem;'>🔒 <strong>100% Private:</strong> All your financial data stays on your device</p>
 </div>
 """, unsafe_allow_html=True)
-
-
-
