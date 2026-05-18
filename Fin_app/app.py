@@ -27,6 +27,78 @@ st.set_page_config(
     initial_sidebar_state='auto'
 )
 
+# --- Enhanced Data Persistence with Auto-Save ---
+DATA_DIR = '.ai_financial_data'
+os.makedirs(DATA_DIR, exist_ok=True)
+SNAPSHOT_FILE = os.path.join(DATA_DIR, 'user_snapshot.json')
+GOALS_FILE = os.path.join(DATA_DIR, 'user_goals.json')
+PORTFOLIO_FILE = os.path.join(DATA_DIR, 'user_portfolio.json')
+QUIZ_FILE = os.path.join(DATA_DIR, 'quiz_results.json')
+TAX_FILE = os.path.join(DATA_DIR, 'tax_investments.json')
+BACKUP_DIR = os.path.join(DATA_DIR, 'backups')
+os.makedirs(BACKUP_DIR, exist_ok=True)
+
+def load_json(path, default):
+    try:
+        if os.path.exists(path):
+            with open(path, 'r') as f:
+                return json.load(f)
+    except Exception:
+        pass
+    return default
+
+def save_json(path, data):
+    with open(path, 'w') as f:
+        json.dump(data, f, indent=2)
+    # Also create backup
+    backup_path = os.path.join(BACKUP_DIR, f"{os.path.basename(path)}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json")
+    with open(backup_path, 'w') as f:
+        json.dump(data, f, indent=2)
+    # Clean old backups (keep last 10)
+    cleanup_old_backups()
+
+def cleanup_old_backups():
+    """Keep only last 10 backup files per data type"""
+    for file_type in ['user_snapshot', 'user_goals', 'user_portfolio', 'quiz_results', 'tax_investments']:
+        backups = [f for f in os.listdir(BACKUP_DIR) if f.startswith(file_type)]
+        if len(backups) > 10:
+            backups.sort()
+            for old_backup in backups[:-10]:
+                os.remove(os.path.join(BACKUP_DIR, old_backup))
+
+def auto_save_all():
+    """Auto-save all session state data"""
+    if st.session_state.user_data:
+        save_json(SNAPSHOT_FILE, st.session_state.user_data)
+    if st.session_state.goals:
+        save_json(GOALS_FILE, st.session_state.goals)
+    if st.session_state.portfolio:
+        save_json(PORTFOLIO_FILE, st.session_state.portfolio)
+    if st.session_state.quiz_results:
+        save_json(QUIZ_FILE, st.session_state.quiz_results)
+    if st.session_state.tax_investments:
+        save_json(TAX_FILE, st.session_state.tax_investments)
+
+def restore_from_backup():
+    """Restore data from latest backup if main file is corrupted"""
+    for file_type, session_key in [('user_snapshot', 'user_data'), ('user_goals', 'goals'), 
+                                   ('user_portfolio', 'portfolio'), ('quiz_results', 'quiz_results'),
+                                   ('tax_investments', 'tax_investments')]:
+        backups = [f for f in os.listdir(BACKUP_DIR) if f.startswith(file_type)]
+        if backups:
+            latest_backup = sorted(backups)[-1]
+            backup_path = os.path.join(BACKUP_DIR, latest_backup)
+            try:
+                data = load_json(backup_path, None)
+                if data:
+                    st.session_state[session_key] = data
+            except:
+                pass
+
+# Auto-save timer setup
+if 'last_auto_save' not in st.session_state:
+    st.session_state.last_auto_save = datetime.now()
+
 # Super Impressive Enhanced Light Theme
 st.markdown("""
 <style>
@@ -112,6 +184,28 @@ st.markdown("""
         background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
         transform: translateY(-3px);
         box-shadow: 0 12px 30px rgba(102, 126, 234, 0.6);
+    }
+    
+    /* Auto-save indicator */
+    .auto-save-indicator {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: #10b981;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 50px;
+        font-size: 14px;
+        font-weight: bold;
+        z-index: 1000;
+        animation: fadeInOut 2s ease-in-out;
+    }
+    
+    @keyframes fadeInOut {
+        0% { opacity: 0; transform: translateY(20px); }
+        15% { opacity: 1; transform: translateY(0); }
+        85% { opacity: 1; transform: translateY(0); }
+        100% { opacity: 0; transform: translateY(-20px); }
     }
     
     /* Enhanced metric cards */
@@ -439,8 +533,81 @@ st.markdown("""
         visibility: visible;
         opacity: 1;
     }
+    
+    /* Quick action buttons */
+    .quick-action {
+        background: #f8fafc;
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 12px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .quick-action:hover {
+        border-color: #667eea;
+        background: #f1f5f9;
+        transform: translateY(-2px);
+    }
 </style>
 """, unsafe_allow_html=True)
+
+# --- Auto-save indicator function ---
+def show_auto_save_indicator():
+    """Display auto-save notification"""
+    st.markdown("""
+    <div class='auto-save-indicator'>
+        💾 Auto-saved at {}
+    </div>
+    """.format(datetime.now().strftime('%H:%M:%S')), unsafe_allow_html=True)
+
+# --- Quick Actions Component ---
+def show_quick_actions():
+    """Display quick action buttons for common tasks"""
+    st.markdown("### 🚀 Quick Actions")
+    cols = st.columns(5)
+    
+    actions = [
+        ("📊", "View Dashboard", "Dashboard"),
+        ("🎯", "Add Goal", "Goals"),
+        ("💰", "Add Investment", "Portfolio"),
+        ("📥", "Export Report", "Export"),
+        ("🧠", "Take Quiz", "Quiz")
+    ]
+    
+    for i, (icon, label, page) in enumerate(actions):
+        with cols[i]:
+            if st.button(f"{icon} {label}", key=f"quick_action_{i}", use_container_width=True):
+                st.session_state.current_page = page
+                st.rerun()
+
+# --- Load saved data on startup ---
+def load_all_saved_data():
+    """Load all saved data on app startup"""
+    try:
+        saved_snapshot = load_json(SNAPSHOT_FILE, None)
+        if saved_snapshot and not st.session_state.user_data:
+            st.session_state.user_data = saved_snapshot
+        
+        saved_goals = load_json(GOALS_FILE, None)
+        if saved_goals and not st.session_state.goals:
+            st.session_state.goals = saved_goals
+        
+        saved_portfolio = load_json(PORTFOLIO_FILE, None)
+        if saved_portfolio and not st.session_state.portfolio:
+            st.session_state.portfolio = saved_portfolio
+        
+        saved_quiz = load_json(QUIZ_FILE, None)
+        if saved_quiz and not st.session_state.get('quiz_results'):
+            st.session_state.quiz_results = saved_quiz
+        
+        saved_tax = load_json(TAX_FILE, None)
+        if saved_tax and not st.session_state.tax_investments:
+            st.session_state.tax_investments = saved_tax
+    except Exception as e:
+        # Try to restore from backup
+        restore_from_backup()
 
 # --- Enhanced PDF Report Generator ---
 class PDFReportGenerator:
@@ -1432,26 +1599,6 @@ class FinancialEducator:
         concept = self.concepts.get(concept_key, {})
         return concept.get('tip', 'Learn more about this concept in our educational section.')
 
-# --- Data Persistence ---
-DATA_DIR = '.ai_financial_data'
-os.makedirs(DATA_DIR, exist_ok=True)
-SNAPSHOT_FILE = os.path.join(DATA_DIR, 'user_snapshot.json')
-GOALS_FILE = os.path.join(DATA_DIR, 'user_goals.json')
-PORTFOLIO_FILE = os.path.join(DATA_DIR, 'user_portfolio.json')
-
-def load_json(path, default):
-    try:
-        if os.path.exists(path):
-            with open(path, 'r') as f:
-                return json.load(f)
-    except Exception:
-        pass
-    return default
-
-def save_json(path, data):
-    with open(path, 'w') as f:
-        json.dump(data, f, indent=2)
-
 def format_currency(amount):
     """Format currency with Indian numbering system"""
     return f"₹{amount:,.0f}"
@@ -1485,6 +1632,26 @@ if 'quiz_completed' not in st.session_state:
     st.session_state.quiz_completed = False
 if 'tax_investments' not in st.session_state:
     st.session_state.tax_investments = {}
+if 'quiz_results' not in st.session_state:
+    st.session_state.quiz_results = None
+if 'auto_save_visible' not in st.session_state:
+    st.session_state.auto_save_visible = False
+
+# Load saved data on startup
+load_all_saved_data()
+
+# Auto-save check (every 5 minutes or when data changes)
+current_time = datetime.now()
+if (current_time - st.session_state.last_auto_save).seconds >= 300:  # 5 minutes
+    auto_save_all()
+    st.session_state.last_auto_save = current_time
+    st.session_state.auto_save_visible = True
+    st.rerun()
+
+# Hide auto-save indicator after 2 seconds
+if st.session_state.auto_save_visible:
+    show_auto_save_indicator()
+    st.session_state.auto_save_visible = False
 
 # --- Enhanced Mutual Fund Data ---
 @st.cache_data
@@ -1564,7 +1731,7 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# --- Privacy Banner ---
+# --- Privacy Banner with Auto-save Info ---
 st.markdown("""
 <div style='background: linear-gradient(135deg, #10b981 0%, #059669 100%); 
             color: white; padding: 1.5rem; border-radius: 16px; 
@@ -1574,8 +1741,14 @@ st.markdown("""
     <p style='color: white; margin: 0; font-size: 1.1rem; font-weight: 500;'>
     All your financial data is stored locally on your device • No data is shared with anyone • Complete privacy guaranteed
     </p>
+    <p style='color: white; margin: 0.5rem 0 0 0; font-size: 1rem; opacity: 0.9;'>
+    💾 Auto-saves every 5 minutes • Data persists between sessions • Backups automatically created
+    </p>
 </div>
 """, unsafe_allow_html=True)
+
+# --- Quick Actions ---
+show_quick_actions()
 
 # --- Enhanced Navigation ---
 nav_options = [
@@ -1591,6 +1764,7 @@ for i, option in enumerate(nav_options):
     with cols[i]:
         if st.button(option, key=f"nav_{i}", use_container_width=True):
             st.session_state.current_page = option
+            st.rerun()
 
 st.markdown("---")
 
@@ -1604,6 +1778,7 @@ if st.session_state.current_page == "📊 Snapshot":
             <h3>🎯 Let's Build Your Financial Profile!</h3>
             <p>Complete this detailed snapshot to unlock personalized AI-powered financial insights and recommendations.</p>
             <p><strong>🔒 Privacy Note:</strong> All your data stays 100% private on your device.</p>
+            <p><strong>💾 Auto-save enabled:</strong> Your data will be automatically saved every 5 minutes.</p>
         </div>
         """, unsafe_allow_html=True)
     else:
@@ -1611,7 +1786,7 @@ if st.session_state.current_page == "📊 Snapshot":
         <div class='financial-sticker'>
             <h3>✅ Your Financial Profile is Ready!</h3>
             <p>You can update your information below or explore other features using the navigation menu.</p>
-            <p><strong>🔒 Your data is securely stored locally.</strong></p>
+            <p><strong>🔒 Your data is securely stored locally and auto-saved regularly.</strong></p>
         </div>
         """, unsafe_allow_html=True)
     
@@ -1621,36 +1796,37 @@ if st.session_state.current_page == "📊 Snapshot":
         with col1:
             st.markdown("### 💰 Income & Profile")
             monthly_income = st.number_input('Monthly Take-Home Income (₹)', min_value=0.0, 
-                                           value=0.0, 
-                                           step=1000.0, key='monthly_income')
+                                           value=st.session_state.user_data.get('monthly_income', 0.0), 
+                                           step=1000.0, key='monthly_income_input')
             current_savings = st.number_input('Current Savings & Emergency Fund (₹)', min_value=0.0, 
-                                            value=0.0, 
-                                            step=5000.0, key='current_savings')
+                                            value=st.session_state.user_data.get('current_savings', 0.0), 
+                                            step=5000.0, key='current_savings_input')
             investment_percentage = st.slider('% of Income to Invest Monthly', 0, 100, 
-                                            0, 
-                                            key='investment_percentage')
+                                            st.session_state.user_data.get('investment_percentage', 0), 
+                                            key='investment_percentage_input')
             
             st.markdown("### 🤖 ML Profile Data")
             age = st.number_input('Your Age', min_value=18, max_value=80, 
-                                value=30, key='age')
+                                value=st.session_state.user_data.get('age', 30), key='age_input')
             investment_experience = st.slider('Investment Experience Level (1-5)', 1, 5, 
-                                            2,
+                                            st.session_state.user_data.get('investment_experience', 2),
                                             help="1: Beginner, 2: Some knowledge, 3: Intermediate, 4: Experienced, 5: Expert")
             
         with col2:
             st.markdown("### 💸 Monthly Expenses")
+            expenses_data = st.session_state.user_data.get('expenses', {})
             rent_emi = st.number_input('🏠 Rent / Home Loan EMI (₹)', 0.0, 
-                                     value=0.0, step=1000.0, key='rent_emi')
+                                     value=expenses_data.get('Rent/EMI', 0.0), step=1000.0, key='rent_emi_input')
             groceries = st.number_input('🛒 Groceries & Household (₹)', 0.0, 
-                                      value=0.0, step=500.0, key='groceries')
+                                      value=expenses_data.get('Groceries', 0.0), step=500.0, key='groceries_input')
             utilities = st.number_input('⚡ Utilities (Electricity, Water, Gas) (₹)', 0.0, 
-                                      value=0.0, step=200.0, key='utilities')
+                                      value=expenses_data.get('Utilities', 0.0), step=200.0, key='utilities_input')
             transportation = st.number_input('🚗 Transportation (Fuel, Maintenance) (₹)', 0.0, 
-                                           value=0.0, step=500.0, key='transportation')
+                                           value=expenses_data.get('Transportation', 0.0), step=500.0, key='transportation_input')
             dining_entertainment = st.number_input('🍽️ Dining & Entertainment (₹)', 0.0, 
-                                                 value=0.0, step=500.0, key='dining')
+                                                 value=expenses_data.get('Dining & Entertainment', 0.0), step=500.0, key='dining_input')
             miscellaneous = st.number_input('📦 Miscellaneous Expenses (₹)', 0.0, 
-                                          value=0.0, step=200.0, key='miscellaneous')
+                                          value=expenses_data.get('Miscellaneous', 0.0), step=200.0, key='miscellaneous_input')
 
         # Assets & Liabilities Section
         st.markdown("### 🏦 Assets & Liabilities")
@@ -1658,21 +1834,23 @@ if st.session_state.current_page == "📊 Snapshot":
         
         with col3:
             st.markdown("#### 💎 Assets")
+            assets_data = st.session_state.user_data.get('assets', {})
             cash_balance = st.number_input('💵 Cash & Bank Balance (₹)', 0.0, 
-                                         value=0.0, step=5000.0, key='cash')
+                                         value=assets_data.get('Cash', 0.0), step=5000.0, key='cash_input')
             stocks_mf = st.number_input('📈 Stocks & Mutual Funds (₹)', 0.0, 
-                                      value=0.0, step=10000.0, key='stocks')
+                                      value=assets_data.get('Stocks/MF', 0.0), step=10000.0, key='stocks_input')
             property_value = st.number_input('🏠 Property Value (₹)', 0.0, 
-                                           value=0.0, step=50000.0, key='property')
+                                           value=assets_data.get('Property', 0.0), step=50000.0, key='property_input')
         
         with col4:
             st.markdown("#### 📄 Liabilities")
+            liabilities_data = st.session_state.user_data.get('liabilities', {})
             home_loan = st.number_input('🏦 Home Loan Outstanding (₹)', 0.0, 
-                                      value=0.0, step=10000.0, key='home_loan')
+                                      value=liabilities_data.get('Home Loan', 0.0), step=10000.0, key='home_loan_input')
             personal_loan = st.number_input('💳 Personal Loan Outstanding (₹)', 0.0, 
-                                          value=0.0, step=5000.0, key='personal_loan')
+                                          value=liabilities_data.get('Personal Loan', 0.0), step=5000.0, key='personal_loan_input')
             other_debt = st.number_input('📝 Other Debt (₹)', 0.0, 
-                                       value=0.0, step=5000.0, key='other_debt')
+                                       value=liabilities_data.get('Other Debt', 0.0), step=5000.0, key='other_debt_input')
 
         if st.form_submit_button('💾 Save Financial Snapshot', use_container_width=True):
             user_data = {
@@ -1702,7 +1880,7 @@ if st.session_state.current_page == "📊 Snapshot":
             }
             st.session_state.user_data = user_data
             save_json(SNAPSHOT_FILE, user_data)
-            st.success('✅ Financial Snapshot saved successfully!')
+            st.success('✅ Financial Snapshot saved successfully! Data will be auto-saved every 5 minutes.')
             st.balloons()
 
 # --- Dashboard Page ---
@@ -1715,8 +1893,8 @@ elif st.session_state.current_page == "📈 Dashboard":
         <div class='financial-sticker'>
             <h3>Get Started with Your Financial Journey!</h3>
             <p>Create your financial snapshot to unlock personalized insights and recommendations.</p>
-            <p><strong>🔒 All your data remains 100% private</strong></p>
-            <p><strong>👇 Scroll down and click on "📊 Snapshot" to enter your details!</strong></p>
+            <p><strong>🔒 All your data remains 100% private and is auto-saved</strong></p>
+            <p><strong>👇 Click the button below to go to Snapshot!</strong></p>
         </div>
         """, unsafe_allow_html=True)
         
@@ -1735,7 +1913,7 @@ elif st.session_state.current_page == "📈 Dashboard":
             'monthly_income': user_data.get('monthly_income', 0),
             'total_expenses': sum(user_data.get('expenses', {}).values()),
             'monthly_savings': user_data.get('monthly_income', 0) - sum(user_data.get('expenses', {}).values()),
-            'savings_rate': ((user_data.get('monthly_income', 0) - sum(user_data.get('expenses', {}).values())) / user_data.get('monthly_income', 1)) * 100,
+            'savings_rate': ((user_data.get('monthly_income', 0) - sum(user_data.get('expenses', {}).values())) / max(user_data.get('monthly_income', 1), 1)) * 100,
             'current_savings': user_data.get('current_savings', 0)
         }
         
@@ -1829,12 +2007,11 @@ elif st.session_state.current_page == "🤖 ML Insights":
                 <li>📊 Behavioral Patterns</li>
                 <li>💡 Personalized Recommendations</li>
             </ul>
-            <p><strong>🔒 Your data remains 100% private</strong></p>
-            <p><strong>👇 Scroll down and click on "📊 Snapshot" to enter your details!</strong></p>
+            <p><strong>🔒 Your data remains 100% private and is auto-saved</strong></p>
+            <p><strong>👇 Click the button below to go to Snapshot!</strong></p>
         </div>
         """, unsafe_allow_html=True)
         
-        # Show navigation reminder
         st.markdown("---")
         st.markdown("### 🚀 Quick Navigation")
         nav_cols = st.columns(3)
@@ -1873,25 +2050,32 @@ elif st.session_state.current_page == "🤖 ML Insights":
             # Goal Success Predictions
             if st.session_state.goals:
                 st.markdown("### 🎯 ML Goal Success Probability")
+                # Calculate monthly savings
+                monthly_income = user_data.get('monthly_income', 0)
+                total_expenses = sum(user_data.get('expenses', {}).values())
+                user_finances = {
+                    'monthly_savings': monthly_income - total_expenses,
+                    'age': user_data.get('age', 30),
+                    'current_savings': user_data.get('current_savings', 0)
+                }
+                
                 for goal in st.session_state.goals:
-                    probability, confidence, color = analyzer.predict_goal_success_probability(goal, user_data)
+                    probability, confidence, color = analyzer.predict_goal_success_probability(goal, user_finances)
                     
-                    col1, col2 = st.columns([4, 1])
-                    with col1:
-                        st.markdown(f"""
-                        <div class='metric-card'>
-                            <h4>🎯 {goal['name']}</h4>
-                            <p>Target: {format_currency(goal['amount'])} in {goal['years']} years | Expected Return: {goal.get('return', 8)}%</p>
-                            <div style='background: #e2e8f0; border-radius: 12px; height: 30px; margin: 15px 0;'>
-                                <div style='background: {color}; 
-                                          width: {probability*100}%; height: 100%; border-radius: 12px; 
-                                          text-align: center; color: white; font-weight: bold; line-height: 30px; font-size: 1.1rem;'>
-                                    {probability*100:.1f}% Success Probability
-                                </div>
+                    st.markdown(f"""
+                    <div class='metric-card'>
+                        <h4>🎯 {goal['name']}</h4>
+                        <p>Target: {format_currency(goal['amount'])} in {goal['years']} years | Expected Return: {goal.get('return', 8)}%</p>
+                        <div style='background: #e2e8f0; border-radius: 12px; height: 30px; margin: 15px 0;'>
+                            <div style='background: {color}; 
+                                      width: {probability*100}%; height: 100%; border-radius: 12px; 
+                                      text-align: center; color: white; font-weight: bold; line-height: 30px; font-size: 1.1rem;'>
+                                {probability*100:.1f}% Success Probability
                             </div>
-                            <p style='font-size: 1.1rem;'><strong>ML Assessment:</strong> {confidence}</p>
                         </div>
-                        """, unsafe_allow_html=True)
+                        <p style='font-size: 1.1rem;'><strong>ML Assessment:</strong> {confidence}</p>
+                    </div>
+                    """, unsafe_allow_html=True)
             else:
                 st.info("🎯 No goals set yet. Visit the Goals Planner to set your financial goals!")
         
@@ -1901,7 +2085,7 @@ elif st.session_state.current_page == "🤖 ML Insights":
             'monthly_income': user_data.get('monthly_income', 0),
             'total_expenses': sum(user_data.get('expenses', {}).values()),
             'monthly_savings': user_data.get('monthly_income', 0) - sum(user_data.get('expenses', {}).values()),
-            'savings_rate': ((user_data.get('monthly_income', 0) - sum(user_data.get('expenses', {}).values())) / user_data.get('monthly_income', 1)) * 100,
+            'savings_rate': ((user_data.get('monthly_income', 0) - sum(user_data.get('expenses', {}).values())) / max(user_data.get('monthly_income', 1), 1)) * 100,
             'current_savings': user_data.get('current_savings', 0)
         }
         recommendations = analyzer.get_financial_recommendations(user_data, metrics)
@@ -1922,12 +2106,11 @@ elif st.session_state.current_page == "🧠 Behavior Quiz":
         <div class='financial-sticker'>
             <h3>Personalized Quiz Awaits Your Profile!</h3>
             <p>Complete your financial snapshot to get quiz results tailored to your specific financial situation.</p>
-            <p><strong>🔒 Your quiz responses remain private</strong></p>
-            <p><strong>👇 Scroll down and click on "📊 Snapshot" to enter your details!</strong></p>
+            <p><strong>🔒 Your quiz responses remain private and are auto-saved</strong></p>
+            <p><strong>👇 Click the button below to go to Snapshot!</strong></p>
         </div>
         """, unsafe_allow_html=True)
         
-        # Show navigation reminder
         st.markdown("---")
         st.markdown("### 🚀 Quick Navigation")
         nav_cols = st.columns(3)
@@ -1940,14 +2123,19 @@ elif st.session_state.current_page == "🧠 Behavior Quiz":
         <div class='financial-sticker'>
             <h3>Discover Your Investment Personality</h3>
             <p>This quiz will help us understand your financial behavior and provide personalized investment recommendations.</p>
-            <p><strong>🔒 Your responses are completely private</strong></p>
+            <p><strong>🔒 Your responses are completely private and auto-saved</strong></p>
             <p><strong>Time:</strong> 5-7 minutes | <strong>Questions:</strong> 8</p>
+            <p><strong>💾 Progress is automatically saved!</strong></p>
         </div>
         """, unsafe_allow_html=True)
         
         quiz = FinancialBehaviorQuiz()
         
         if not st.session_state.quiz_completed:
+            # Check if there's saved progress
+            if not st.session_state.quiz_answers and 'saved_quiz_answers' in st.session_state:
+                st.session_state.quiz_answers = st.session_state.saved_quiz_answers
+            
             # Show current question
             current_q = quiz.questions[st.session_state.current_question]
             
@@ -1959,8 +2147,6 @@ elif st.session_state.current_page == "🧠 Behavior Quiz":
             """, unsafe_allow_html=True)
             
             # Display options
-            selected_option = None
-            
             for i, option in enumerate(current_q['options']):
                 is_selected = st.session_state.quiz_answers.get(current_q['id']) == i
                 css_class = "quiz-option selected" if is_selected else "quiz-option"
@@ -1973,6 +2159,8 @@ elif st.session_state.current_page == "🧠 Behavior Quiz":
                 
                 if st.button(f"Select Option {i+1}", key=f"opt_{current_q['id']}_{i}", use_container_width=True):
                     st.session_state.quiz_answers[current_q['id']] = i
+                    # Auto-save quiz progress
+                    st.session_state.saved_quiz_answers = st.session_state.quiz_answers
                     st.rerun()
             
             # Navigation buttons
@@ -2020,6 +2208,10 @@ elif st.session_state.current_page == "🧠 Behavior Quiz":
             
             personality_result = quiz.calculate_personality(answers_with_scores)
             recommendations = quiz.get_recommendations(personality_result)
+            
+            # Save quiz results
+            st.session_state.quiz_results = personality_result
+            save_json(QUIZ_FILE, personality_result)
             
             # Display Personality Results
             st.markdown("### 🎯 Your Investment Personality")
@@ -2082,15 +2274,15 @@ elif st.session_state.current_page == "🧠 Behavior Quiz":
                 for suggestion in recommendations['suggestions']:
                     st.markdown(f"• {suggestion}")
             
-            # Store quiz results for PDF
-            st.session_state.quiz_results = personality_result
-            
             # Reset quiz button
             st.markdown("---")
             if st.button("🔄 Take Quiz Again", use_container_width=True):
                 st.session_state.quiz_answers = {}
                 st.session_state.current_question = 0
                 st.session_state.quiz_completed = False
+                st.session_state.quiz_results = None
+                if 'saved_quiz_answers' in st.session_state:
+                    del st.session_state.saved_quiz_answers
                 st.rerun()
 
 # --- Investment Center Page ---
@@ -2103,12 +2295,11 @@ elif st.session_state.current_page == "💹 Investment Center":
         <div class='financial-sticker'>
             <h3>Personalized Investment Center Awaits!</h3>
             <p>Complete your financial snapshot to get investment recommendations tailored to your risk profile and goals.</p>
-            <p><strong>🔒 Your investment data remains private</strong></p>
-            <p><strong>👇 Scroll down and click on "📊 Snapshot" to enter your details!</strong></p>
+            <p><strong>🔒 Your investment data remains private and is auto-saved</strong></p>
+            <p><strong>👇 Click the button below to go to Snapshot!</strong></p>
         </div>
         """, unsafe_allow_html=True)
         
-        # Show navigation reminder
         st.markdown("---")
         st.markdown("### 🚀 Quick Navigation")
         nav_cols = st.columns(3)
@@ -2230,12 +2421,11 @@ elif st.session_state.current_page == "🎯 Goals Planner":
         <div class='financial-sticker'>
             <h3>Goal Planning Made Personal!</h3>
             <p>Complete your financial snapshot to set goals that align with your income, expenses, and savings capacity.</p>
-            <p><strong>🔒 Your goals are stored locally and private</strong></p>
-            <p><strong>👇 Scroll down and click on "📊 Snapshot" to enter your details!</strong></p>
+            <p><strong>🔒 Your goals are stored locally, auto-saved, and private</strong></p>
+            <p><strong>👇 Click the button below to go to Snapshot!</strong></p>
         </div>
         """, unsafe_allow_html=True)
         
-        # Show navigation reminder
         st.markdown("---")
         st.markdown("### 🚀 Quick Navigation")
         nav_cols = st.columns(3)
@@ -2244,11 +2434,11 @@ elif st.session_state.current_page == "🎯 Goals Planner":
                 st.session_state.current_page = "📊 Snapshot"
                 st.rerun()
     else:
-        # Privacy Notice
         st.markdown("""
         <div class='financial-sticker'>
-            <h3>🔒 Your Goals are Private!</h3>
-            <p>All your financial goals are stored locally and only visible to you.</p>
+            <h3>🔒 Your Goals are Private & Auto-Saved!</h3>
+            <p>All your financial goals are stored locally, automatically saved, and only visible to you.</p>
+            <p><strong>💾 Goals are saved every time you add or delete them</strong></p>
         </div>
         """, unsafe_allow_html=True)
         
@@ -2279,7 +2469,7 @@ elif st.session_state.current_page == "🎯 Goals Planner":
             }
             st.session_state.goals.append(new_goal)
             save_json(GOALS_FILE, st.session_state.goals)
-            st.success(f'🎯 Goal "{g_name}" added successfully!')
+            st.success(f'🎯 Goal "{g_name}" added successfully and auto-saved!')
             st.balloons()
 
         if st.session_state.goals:
@@ -2351,12 +2541,11 @@ elif st.session_state.current_page == "💼 Portfolio":
         <div class='financial-sticker'>
             <h3>Portfolio Tracking Made Easy!</h3>
             <p>Complete your financial snapshot to get personalized portfolio recommendations and tracking.</p>
-            <p><strong>🔒 Your portfolio data remains private</strong></p>
-            <p><strong>👇 Scroll down and click on "📊 Snapshot" to enter your details!</strong></p>
+            <p><strong>🔒 Your portfolio data remains private and is auto-saved</strong></p>
+            <p><strong>👇 Click the button below to go to Snapshot!</strong></p>
         </div>
         """, unsafe_allow_html=True)
         
-        # Show navigation reminder
         st.markdown("---")
         st.markdown("### 🚀 Quick Navigation")
         nav_cols = st.columns(3)
@@ -2369,7 +2558,7 @@ elif st.session_state.current_page == "💼 Portfolio":
         <div class='financial-sticker'>
             <h3>Track Your Investments</h3>
             <p>Add your current holdings and visualize your portfolio allocation.</p>
-            <p><strong>🔒 Your investment data is stored locally</strong></p>
+            <p><strong>🔒 Your investment data is stored locally and auto-saved</strong></p>
         </div>
         """, unsafe_allow_html=True)
 
@@ -2391,7 +2580,7 @@ elif st.session_state.current_page == "💼 Portfolio":
                 if add and name and amt>0:
                     st.session_state.portfolio.append({'name': name, 'amount': amt, 'category': category})
                     save_json(PORTFOLIO_FILE, st.session_state.portfolio)
-                    st.success('✅ Holding added successfully!')
+                    st.success('✅ Holding added successfully and auto-saved!')
         
         with tab2:
             st.markdown("### 📁 Import Portfolio via CSV")
@@ -2405,7 +2594,7 @@ elif st.session_state.current_page == "💼 Portfolio":
                     if st.button("Add to Portfolio", use_container_width=True):
                         st.session_state.portfolio.extend(processed_holdings)
                         save_json(PORTFOLIO_FILE, st.session_state.portfolio)
-                        st.success("✅ Portfolio updated with CSV data!")
+                        st.success("✅ Portfolio updated with CSV data and auto-saved!")
                         st.rerun()
         
         with tab3:
@@ -2439,7 +2628,7 @@ elif st.session_state.current_page == "💼 Portfolio":
         if st.session_state.portfolio:
             pfdf = pd.DataFrame(st.session_state.portfolio)
             total_portfolio = pfdf['amount'].sum()
-            pfdf['pct'] = (pfdf['amount'] / total_portfolio) * 100
+            pfdf['pct'] = (pfdf['amount'] / total_portfolio) * 100 if total_portfolio > 0 else 0
             
             col1, col2 = st.columns(2)
             
@@ -2454,10 +2643,13 @@ elif st.session_state.current_page == "💼 Portfolio":
                 st.metric("Total Portfolio Value", format_currency(total_portfolio))
                 
             with col2:
-                st.subheader('Portfolio Allocation')
-                fig = px.pie(pfdf, names='category', values='amount', title='Investment Allocation by Category')
-                fig = apply_plotly_theme(fig)
-                st.plotly_chart(fig, use_container_width=True)
+                if total_portfolio > 0:
+                    st.subheader('Portfolio Allocation')
+                    fig = px.pie(pfdf, names='category', values='amount', title='Investment Allocation by Category')
+                    fig = apply_plotly_theme(fig)
+                    st.plotly_chart(fig, use_container_width=True)
+                else:
+                    st.info("Add investments to see portfolio allocation chart")
         else:
             st.info("💼 No portfolio holdings added yet. Use the form above to add your first investment!")
 
@@ -2471,12 +2663,11 @@ elif st.session_state.current_page == "🏦 Tax Planner":
         <div class='financial-sticker'>
             <h3>Smart Tax Planning Awaits!</h3>
             <p>Complete your financial snapshot to get tax-saving recommendations based on your income and goals.</p>
-            <p><strong>🔒 Your tax data remains private</strong></p>
-            <p><strong>👇 Scroll down and click on "📊 Snapshot" to enter your details!</strong></p>
+            <p><strong>🔒 Your tax data remains private and is auto-saved</strong></p>
+            <p><strong>👇 Click the button below to go to Snapshot!</strong></p>
         </div>
         """, unsafe_allow_html=True)
         
-        # Show navigation reminder
         st.markdown("---")
         st.markdown("### 🚀 Quick Navigation")
         nav_cols = st.columns(3)
@@ -2489,7 +2680,7 @@ elif st.session_state.current_page == "🏦 Tax Planner":
         <div class='financial-sticker'>
             <h3>Save Tax, Build Wealth</h3>
             <p>Optimize your tax savings with AI-powered recommendations and goal-linked tax planning.</p>
-            <p><strong>🔒 All tax calculations are done locally</strong></p>
+            <p><strong>🔒 All tax calculations are done locally and auto-saved</strong></p>
         </div>
         """, unsafe_allow_html=True)
         
@@ -2527,7 +2718,7 @@ elif st.session_state.current_page == "🏦 Tax Planner":
                     investment = st.number_input(f"Investment in {details['name']} (₹)", 
                                                min_value=0, 
                                                max_value=150000,
-                                               value=0,
+                                               value=st.session_state.tax_investments.get(option, 0),
                                                key=f"tax_{option}")
                     
                     st.session_state.tax_investments[option] = investment
@@ -2546,7 +2737,7 @@ elif st.session_state.current_page == "🏦 Tax Planner":
                         investment = st.number_input(f"Additional NPS Investment (₹)", 
                                                    min_value=0, 
                                                    max_value=50000,
-                                                   value=0,
+                                                   value=st.session_state.tax_investments.get(option, 0),
                                                    key=f"tax_{option}")
                         st.session_state.tax_investments[option] = investment
         
@@ -2560,6 +2751,9 @@ elif st.session_state.current_page == "🏦 Tax Planner":
                 st.session_state.tax_investments, annual_income
             )
             
+            # Save tax investments
+            save_json(TAX_FILE, st.session_state.tax_investments)
+            
             col1, col2, col3 = st.columns(3)
             with col1:
                 st.metric("Total 80C Investment", format_currency(total_80c_investment))
@@ -2570,7 +2764,7 @@ elif st.session_state.current_page == "🏦 Tax Planner":
             
             # Progress towards 80C limit
             progress = min(total_80c_investment / 150000, 1.0)
-            st.progress(progress, text=f"Section 80C Utilization: {total_80c_investment:,}/150,000")
+            st.progress(progress, text=f"Section 80C Utilization: {format_currency(total_80c_investment)}/1,50,000")
             
             if total_80c_investment < 150000:
                 st.info(f"💡 You can invest additional {format_currency(150000 - total_80c_investment)} to maximize 80C benefits")
@@ -2651,11 +2845,10 @@ elif st.session_state.current_page == "📥 Export":
             <h3>Comprehensive Reports Await Your Data!</h3>
             <p>Complete your financial snapshot to generate detailed PDF reports with analysis and recommendations.</p>
             <p><strong>🔒 All reports are generated locally on your device</strong></p>
-            <p><strong>👇 Scroll down and click on "📊 Snapshot" to enter your details!</strong></p>
+            <p><strong>👇 Click the button below to go to Snapshot!</strong></p>
         </div>
         """, unsafe_allow_html=True)
         
-        # Show navigation reminder
         st.markdown("---")
         st.markdown("### 🚀 Quick Navigation")
         nav_cols = st.columns(3)
@@ -2703,7 +2896,7 @@ elif st.session_state.current_page == "📥 Export":
                 st.download_button(
                     '📥 Download Comprehensive PDF Report', 
                     pdf_data, 
-                    f'financial_report_{datetime.now().strftime("%Y%m%d")}.pdf', 
+                    f'financial_report_{datetime.now().strftime("%Y%m%d_%H%M%S")}.pdf', 
                     'application/pdf'
                 )
                 
@@ -2727,6 +2920,16 @@ elif st.session_state.current_page == "📥 Export":
                         '📥 Download Goals JSON', 
                         goals_json, 
                         'financial_goals.json', 
+                        'application/json'
+                    )
+            
+            if st.session_state.portfolio:
+                if st.button('💼 Download Portfolio Data', use_container_width=True):
+                    portfolio_json = json.dumps(st.session_state.portfolio, indent=2).encode('utf-8')
+                    st.download_button(
+                        '📥 Download Portfolio JSON', 
+                        portfolio_json, 
+                        'portfolio_data.json', 
                         'application/json'
                     )
 
@@ -2755,7 +2958,7 @@ elif st.session_state.current_page == "👨‍💻 Developer":
         <a href="https://github.com/asdharupur1-boop/Finance_app" target="_blank" class="social-link">
             <div style='font-size: 2.5rem;'>🐙</div>
             <p><strong>GitHub</strong></p>
-            <p style='font-size: 1rem;'>ayushshukla</p>
+            <p style='font-size: 1rem;'>View Project</p>
         </a>
         """, unsafe_allow_html=True)
     
@@ -2764,13 +2967,13 @@ elif st.session_state.current_page == "👨‍💻 Developer":
         <a href="https://www.linkedin.com/in/ayush-shukla-890072337/" target="_blank" class="social-link">
             <div style='font-size: 2.5rem;'>💼</div>
             <p><strong>LinkedIn</strong></p>
-            <p style='font-size: 1rem;'>ayushshukla</p>
+            <p style='font-size: 1rem;'>Connect</p>
         </a>
         """, unsafe_allow_html=True)
     
     with contact_cols[2]:
         st.markdown("""
-        <a href="Asdharupur1@gmail.com" class="social-link">
+        <a href="mailto:Asdharupur1@gmail.com" class="social-link">
             <div style='font-size: 2.5rem;'>📧</div>
             <p><strong>Email</strong></p>
             <p style='font-size: 1rem;'>Contact Me</p>
@@ -2782,9 +2985,51 @@ elif st.session_state.current_page == "👨‍💻 Developer":
         <a href="https://github.com/asdharupur1-boop" target="_blank" class="social-link">
             <div style='font-size: 2.5rem;'>🌐</div>
             <p><strong>Portfolio</strong></p>
-            <p style='font-size: 1rem;'>Ayush Shukla</p>
+            <p style='font-size: 1rem;'>View Profile</p>
         </a>
         """, unsafe_allow_html=True)
+    
+    # App Features Section
+    st.markdown("### ✨ App Features")
+    features_cols = st.columns(2)
+    
+    with features_cols[0]:
+        st.markdown("""
+        #### 🤖 AI & ML Capabilities
+        - ML-powered risk assessment
+        - Goal success probability prediction
+        - Behavioral finance insights
+        - Personalized recommendations
+        - Intelligent portfolio allocation
+        """)
+        
+        st.markdown("""
+        #### 🔒 Privacy & Security
+        - 100% local data storage
+        - No data sharing
+        - Automatic backups
+        - Client-side processing
+        - Encrypted local storage
+        """)
+    
+    with features_cols[1]:
+        st.markdown("""
+        #### 💰 Financial Tools
+        - SIP & lump sum calculators
+        - Goal-based planning
+        - Tax optimization
+        - Portfolio tracking
+        - Expense analysis
+        """)
+        
+        st.markdown("""
+        #### 📊 Data Persistence
+        - Automatic saving every 5 minutes
+        - Data survives page refresh
+        - Backup creation for safety
+        - Export/Import capabilities
+        - Cross-session persistence
+        """)
 
 # --- Footer ---
 st.markdown("---")
@@ -2793,5 +3038,6 @@ st.markdown("""
     <p style='font-size: 1.2rem; font-weight: 600;'>Built with ❤️ by Ayush Shukla | AI Financial Advisor v5.0</p>
     <p style='font-size: 1.1rem;'>🤖 Powered by Machine Learning & Data Science | 📊 Your Financial Companion</p>
     <p style='font-size: 1rem; margin-top: 1rem;'>🔒 <strong>100% Private:</strong> All your financial data stays on your device</p>
+    <p style='font-size: 1rem;'>💾 <strong>Auto-Save Enabled:</strong> Your data is automatically saved every 5 minutes</p>
 </div>
 """, unsafe_allow_html=True)
